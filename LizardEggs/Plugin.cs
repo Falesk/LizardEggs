@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using RWCustom;
+using System.Security.Cryptography;
 
 namespace LizardEggs
 {
@@ -51,6 +52,7 @@ namespace LizardEggs
             {
                 orig(self, game, region, name, singleRoomWorld);
                 EggsInDen = new Dictionary<WorldCoordinate, (AbstractCreature, int)>();
+                removedEggs = new List<AbstractLizardEgg>();
             };
             On.Player.Grabability += delegate (On.Player.orig_Grabability orig, Player self, PhysicalObject obj)
             {
@@ -69,6 +71,7 @@ namespace LizardEggs
                 }
                 return orig(slugcatIndex, eatenobject);
             };
+            On.Lizard.Update += Lizard_Update;
             On.LizardAI.DoIWantToHoldThisWithMyTongue += LizardAI_DoIWantToHoldThisWithMyTongue;
             On.LizardAI.DetermineBehavior += LizardAI_DetermineBehavior;
             On.Lizard.CarryObject += Lizard_CarryObject;
@@ -78,6 +81,22 @@ namespace LizardEggs
             On.ItemSymbol.SymbolDataFromItem += ItemSymbol_SymbolDataFromItem;
             On.ItemSymbol.SpriteNameForItem += ItemSymbol_SpriteNameForItem;
             On.Player.DirectIntoHoles += Player_DirectIntoHoles;
+        }
+
+        private void Lizard_Update(On.Lizard.orig_Update orig, Lizard self, bool eu)
+        {
+            if (!self.abstractCreature.InDen && self.grasps[0] != null && self.grasps[0].grabbed.abstractPhysicalObject is AbstractLizardEgg egg && Custom.Dist(self.room.MiddleOfTile(self.abstractCreature.pos.Tile), self.room.MiddleOfTile(self.abstractCreature.spawnDen.Tile)) < 40f)
+            {
+                var a = EggsInDen[self.abstractCreature.spawnDen];
+                a.Item2++;
+                EggsInDen[self.abstractCreature.spawnDen] = a;
+                Indicator indicator = new Indicator(self.abstractCreature.spawnDen, self.room);
+                self.LoseAllGrasps();
+                self.room.AddObject(indicator);
+                indicators.Add(indicator);
+                egg.Destroy();
+            }
+            orig(self, eu);
         }
 
         private bool LizardAI_DoIWantToHoldThisWithMyTongue(On.LizardAI.orig_DoIWantToHoldThisWithMyTongue orig, LizardAI self, BodyChunk chunk)
@@ -129,7 +148,7 @@ namespace LizardEggs
             {
                 if (newRoom.abstractRoom.index == den.Key.room && den.Value.Item2 > 0)
                 {
-                    Indicator indicator = new Indicator(den.Key, self);
+                    Indicator indicator = new Indicator(den.Key, self.room);
                     newRoom.AddObject(indicator);
                     indicators.Add(indicator);
                 }
@@ -215,6 +234,7 @@ namespace LizardEggs
                         self.abstractCreature.Room.AddEntity(abstractEgg);
                         abstractEgg.RealizeInRoom();
                         self.SlugcatGrab(abstractEgg.realizedObject, self.FreeHand());
+                        removedEggs.Add(abstractEgg as AbstractLizardEgg);
                         var a = EggsInDen[den];
                         a.Item2--;
                         EggsInDen[den] = a;
@@ -251,6 +271,7 @@ namespace LizardEggs
         }
         public static Dictionary<WorldCoordinate, (AbstractCreature, int)> EggsInDen { get; private set; }
         public List<Indicator> indicators;
+        public List<AbstractLizardEgg> removedEggs;
         public Room lastRoom;
     }
 }

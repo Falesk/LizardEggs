@@ -4,10 +4,10 @@ namespace LizardEggs
 {
     class Indicator : CosmeticSprite
     {
-        public Indicator(WorldCoordinate den, RoomCamera rCam)
+        public Indicator(WorldCoordinate den, Room room)
         {
             this.den = den;
-            room = rCam.room;
+            this.room = room;
             pos = room.MiddleOfTile(room.LocalCoordinateOfNode(den.abstractNode).Tile);
             lizard = (Plugin.EggsInDen[den].Item1?.realizedCreature as Lizard) ?? new Lizard(Plugin.EggsInDen[den].Item1, room.world);
             color = (lizard.effectColor == new Color(0, 0, 0)) ? new Color(0.5f, 0.5f, 0.5f) : lizard.effectColor;
