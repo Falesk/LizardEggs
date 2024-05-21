@@ -81,6 +81,67 @@ namespace LizardEggs
         public override void PlaceInRoom(Room placeRoom)
         {
             base.PlaceInRoom(placeRoom);
+            //This part not working at all!!!
+            if (AbstractLizardEgg.stage == 3 && placeRoom.abstractRoom.shelter)
+            {
+                AbstractCreature abstr = new AbstractCreature(placeRoom.world, StaticWorld.GetCreatureTemplate(AbstractLizardEgg.parentType), null, AbstractLizardEgg.pos, AbstractLizardEgg.parentID);
+                placeRoom.abstractRoom.AddEntity(abstr);
+
+                //LizardBreedParams prm = abstr.creatureTemplate.breedParameters as LizardBreedParams;
+                //if (abstr.GetData() is Features.Data data)
+                //{
+                //    data.stage++;
+                //    prm.bodySizeFac *= 0.3f;
+                //    prm.headSize *= 0.3f;
+                //    prm.limbSize *= 0.3f;
+                //}
+
+                //if (abstr.GetData() is Features.Data data && data.stage != -1)
+                //{
+                //    switch (data.stage)
+                //    {
+                //        case 0:
+                //            prm.bodySizeFac *= 0.3f;
+                //            prm.headSize *= 0.3f;
+                //            prm.limbSize *= 0.3f;
+                //            break;
+                //        case 1:
+                //            prm.bodySizeFac *= 1.5f;
+                //            prm.headSize *= 1.5f;
+                //            prm.limbSize *= 1.5f;
+                //            break;
+                //        case 2:
+                //            prm.bodySizeFac *= 1 + 1f / 3f;
+                //            prm.headSize *= 1 + 1f / 3f;
+                //            prm.limbSize *= 1 + 1f / 3f;
+                //            break;
+                //        case 3:
+                //            prm.bodySizeFac *= 1.25f;
+                //            prm.headSize *= 1.25f;
+                //            prm.limbSize *= 1.25f;
+                //            break;
+                //        case 4:
+                //            prm.bodySizeFac *= 1.2f;
+                //            prm.headSize *= 1.2f;
+                //            prm.limbSize *= 1.2f;
+                //            break;
+                //        default:
+                //            prm.bodySizeFac *= 1f + 1f / 9f;
+                //            prm.headSize *= 1f + 1f / 9f;
+                //            prm.limbSize *= 1f + 1f / 9f;
+                //            data.stage = -1;
+                //            break;
+                //    }
+                //}
+                //abstr.creatureTemplate.breedParameters = prm;
+
+                abstr.RealizeInRoom();
+                Lizard liz = abstr.realizedCreature as Lizard;
+                liz.mainBodyChunk.HardSetPosition(placeRoom.MiddleOfTile(AbstractLizardEgg.pos.Tile));
+                liz.AI.friendTracker.friend = placeRoom.PlayersInRoom[Random.Range(0, placeRoom.PlayersInRoom.Count)];
+                Destroy();
+                return;
+            }
             firstChunk.HardSetPosition(placeRoom.MiddleOfTile(AbstractLizardEgg.pos.Tile));
             rotation = Custom.RNV();
             lastRotation = rotation;

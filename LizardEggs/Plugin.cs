@@ -4,7 +4,6 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using RWCustom;
-using System.Security.Cryptography;
 
 namespace LizardEggs
 {
@@ -71,7 +70,8 @@ namespace LizardEggs
                 }
                 return orig(slugcatIndex, eatenobject);
             };
-            On.Lizard.Update += Lizard_Update;
+            //On.Lizard.ctor += Lizard_ctor;
+            //On.Lizard.Update += Lizard_Update;
             On.LizardAI.DoIWantToHoldThisWithMyTongue += LizardAI_DoIWantToHoldThisWithMyTongue;
             On.LizardAI.DetermineBehavior += LizardAI_DetermineBehavior;
             On.Lizard.CarryObject += Lizard_CarryObject;
@@ -83,21 +83,65 @@ namespace LizardEggs
             On.Player.DirectIntoHoles += Player_DirectIntoHoles;
         }
 
-        private void Lizard_Update(On.Lizard.orig_Update orig, Lizard self, bool eu)
-        {
-            if (!self.abstractCreature.InDen && self.grasps[0] != null && self.grasps[0].grabbed.abstractPhysicalObject is AbstractLizardEgg egg && Custom.Dist(self.room.MiddleOfTile(self.abstractCreature.pos.Tile), self.room.MiddleOfTile(self.abstractCreature.spawnDen.Tile)) < 40f)
-            {
-                var a = EggsInDen[self.abstractCreature.spawnDen];
-                a.Item2++;
-                EggsInDen[self.abstractCreature.spawnDen] = a;
-                Indicator indicator = new Indicator(self.abstractCreature.spawnDen, self.room);
-                self.LoseAllGrasps();
-                self.room.AddObject(indicator);
-                indicators.Add(indicator);
-                egg.Destroy();
-            }
-            orig(self, eu);
-        }
+        //private void Lizard_ctor(On.Lizard.orig_ctor orig, Lizard self, AbstractCreature abstractCreature, World world)
+        //{
+        //    LizardBreedParams prm = abstractCreature.creatureTemplate.breedParameters as LizardBreedParams;
+        //    if (self.GetData() is Features.Data data && data.stage != -1)
+        //    {
+        //        switch (data.stage)
+        //        {
+        //            case 0:
+        //                prm.bodySizeFac *= 0.3f;
+        //                prm.headSize *= 0.3f;
+        //                prm.limbSize *= 0.3f;
+        //                break;
+        //            case 1:
+        //                prm.bodySizeFac *= 1.5f;
+        //                prm.headSize *= 1.5f;
+        //                prm.limbSize *= 1.5f;
+        //                break;
+        //            case 2:
+        //                prm.bodySizeFac *= 1 + 1f / 3f;
+        //                prm.headSize *= 1 + 1f / 3f;
+        //                prm.limbSize *= 1 + 1f / 3f;
+        //                break;
+        //            case 3:
+        //                prm.bodySizeFac *= 1.25f;
+        //                prm.headSize *= 1.25f;
+        //                prm.limbSize *= 1.25f;
+        //                break;
+        //            case 4:
+        //                prm.bodySizeFac *= 1.2f;
+        //                prm.headSize *= 1.2f;
+        //                prm.limbSize *= 1.2f;
+        //                break;
+        //            default:
+        //                prm.bodySizeFac *= 1f + 1f / 9f;
+        //                prm.headSize *= 1f + 1f / 9f;
+        //                prm.limbSize *= 1f + 1f / 9f;
+        //                data.stage = -1;
+        //                break;
+        //        }
+        //        abstractCreature.creatureTemplate.breedParameters = prm;
+        //    }
+        //    orig(self, abstractCreature, world);
+        //}
+
+        //private void Lizard_Update(On.Lizard.orig_Update orig, Lizard self, bool eu)
+        //{
+        //    if (!self.abstractCreature.InDen && self.grasps[0] != null && self.grasps[0].grabbed.abstractPhysicalObject is AbstractLizardEgg egg && Custom.Dist(self.room.MiddleOfTile(self.abstractCreature.pos.Tile), self.room.MiddleOfTile(self.abstractCreature.spawnDen.Tile)) < 40f)
+        //    {
+        //        var a = EggsInDen[self.abstractCreature.spawnDen];
+        //        a.Item2++;
+        //        EggsInDen[self.abstractCreature.spawnDen] = a;
+        //        Indicator indicator = new Indicator(self.abstractCreature.spawnDen, self.room);
+        //        self.LoseAllGrasps();
+        //        self.room.AddObject(indicator);
+        //        indicators.Add(indicator);
+        //        egg.Destroy();
+        //    }
+        //    orig(self, eu);
+        //}
 
         private bool LizardAI_DoIWantToHoldThisWithMyTongue(On.LizardAI.orig_DoIWantToHoldThisWithMyTongue orig, LizardAI self, BodyChunk chunk)
         {
@@ -165,10 +209,7 @@ namespace LizardEggs
         {
             if (item.type == Register.LizardEgg)
             {
-                int data = 0;
-                data += (int)((item as AbstractLizardEgg).color.r * 100) * 1000000;
-                data += (int)((item as AbstractLizardEgg).color.g * 100) * 1000;
-                data += (int)((item as AbstractLizardEgg).color.b * 100);
+                int data = Features.ColorToInt((item as AbstractLizardEgg).color);
                 return new IconSymbol.IconSymbolData?(new IconSymbol.IconSymbolData(CreatureTemplate.Type.StandardGroundCreature, item.type, data));
             }
             return orig(item);
@@ -177,12 +218,7 @@ namespace LizardEggs
         private Color ItemSymbol_ColorForItem(On.ItemSymbol.orig_ColorForItem orig, AbstractPhysicalObject.AbstractObjectType itemType, int intData)
         {
             if (itemType == Register.LizardEgg)
-            {
-                int r = intData / 1000000;
-                int g = intData / 1000 - (r * 1000);
-                int b = intData % 1000;
-                return new Color((float)r / 140, (float)g / 140, (float)b / 140);
-            }
+                return Color.Lerp(Features.IntToColor(intData), Color.black, 0.4f);
             return orig(itemType, intData);
         }
 
@@ -196,22 +232,21 @@ namespace LizardEggs
                 {
                     AbstractPhysicalObject abstrEgg = new AbstractLizardEgg
                     (
-                        world,
-                        null,
-                        WorldCoordinate.FromString(array[2]),
-                        EntityID.FromString(array[0]),
-                        EntityID.FromString(array[7]),
-                        size: float.Parse(array[6]),
-                        color: new Color(float.Parse(array[3]), float.Parse(array[4]), float.Parse(array[5])),
-                        fromStr: true
+                        world: world,
+                        obj: null,
+                        pos: WorldCoordinate.FromString(array[2]),
+                        ID: EntityID.FromString(array[0]),
+                        parentID: EntityID.FromString(array[5]),
+                        size: float.Parse(array[4]),
+                        color: Features.IntToColor(int.Parse(array[3])),
+                        stage: int.Parse(array[6]) + 1,
+                        parentType: array[7]
                     )
-                    {
-                        unrecognizedAttributes = SaveUtils.PopulateUnrecognizedStringAttrs(array, 8)
-                    };
+                    { unrecognizedAttributes = SaveUtils.PopulateUnrecognizedStringAttrs(array, 8) };
                     return abstrEgg;
                 }
             }
-            catch { Debug.Log($"==== {GUID}: Exception in 'SaveState_AbstractPhysicalObjectFromString' ===="); }
+            catch { }
             return orig(world, objString);
         }
 
@@ -230,7 +265,7 @@ namespace LizardEggs
                     {
                         Lizard liz = (EggsInDen[den].Item1?.realizedCreature as Lizard) ?? new Lizard(EggsInDen[den].Item1, self.room.world);
                         float size = (EggsInDen[den].Item1.creatureTemplate.type == CreatureTemplate.Type.GreenLizard) ? liz.lizardParams.bodyMass - 3 : liz.lizardParams.bodyMass;
-                        AbstractPhysicalObject abstractEgg = new AbstractLizardEgg(self.room.world, null, self.room.GetWorldCoordinate(self.firstChunk.pos), self.room.game.GetNewID(), liz.abstractCreature.ID, size, liz.effectColor);
+                        AbstractPhysicalObject abstractEgg = new AbstractLizardEgg(self.room.world, null, self.room.GetWorldCoordinate(self.firstChunk.pos), self.room.game.GetNewID(), liz.abstractCreature.ID, size, liz.effectColor, liz.Template.type.value);
                         self.abstractCreature.Room.AddEntity(abstractEgg);
                         abstractEgg.RealizeInRoom();
                         self.SlugcatGrab(abstractEgg.realizedObject, self.FreeHand());
