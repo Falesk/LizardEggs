@@ -2,7 +2,7 @@
 
 namespace LizardEggs
 {
-    static class Register
+    public static class Register
     {
         public static void RegisterValues()
         {
@@ -19,7 +19,6 @@ namespace LizardEggs
             lizardEggFood?.Unregister();
             LizardEggNPCFood = null;
         }
-
         public static AbstractPhysicalObject.AbstractObjectType LizardEgg;
         public static SlugNPCAI.Food LizardEggNPCFood;
     }

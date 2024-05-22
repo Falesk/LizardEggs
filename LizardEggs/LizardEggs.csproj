@@ -78,7 +78,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AbstractLizardEgg.cs" />
-    <Compile Include="Features.cs" />
+    <Compile Include="FCustom.cs" />
     <Compile Include="LizardEgg.cs" />
     <Compile Include="Plugin.cs" />
     <Compile Include="Indicator.cs" />

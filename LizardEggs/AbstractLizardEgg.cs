@@ -2,7 +2,7 @@
 
 namespace LizardEggs
 {
-    class AbstractLizardEgg : AbstractPhysicalObject
+    public class AbstractLizardEgg : AbstractPhysicalObject
     {
         public AbstractLizardEgg(World world, PhysicalObject obj, WorldCoordinate pos, EntityID ID, EntityID parentID, float size, Color color, string parentType, int stage = 0) : base(world, Register.LizardEgg, obj, pos, ID)
         {
@@ -20,7 +20,7 @@ namespace LizardEggs
         }
         public override string ToString()
         {
-            string text = $"{ID}<oA>{type}<oA>{pos.SaveToString()}<oA>{Features.ColorToInt(color)}<oA>{size}<oA>{parentID}<oA>{stage}<oA>{parentType}";
+            string text = $"{ID}<oA>{type}<oA>{pos.SaveToString()}<oA>{FCustom.ColorToInt(color)}<oA>{size}<oA>{parentID}<oA>{stage}<oA>{parentType}";
             text = SaveState.SetCustomData(this, text);
             return SaveUtils.AppendUnrecognizedStringAttrs(text, "<oA>", unrecognizedAttributes);
         }

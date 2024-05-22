@@ -70,7 +70,7 @@ namespace LizardEggs
                 }
                 return orig(slugcatIndex, eatenobject);
             };
-            //On.Lizard.ctor += Lizard_ctor;
+            On.LizardGraphics.ctor += LizardGraphics_ctor;
             //On.Lizard.Update += Lizard_Update;
             On.LizardAI.DoIWantToHoldThisWithMyTongue += LizardAI_DoIWantToHoldThisWithMyTongue;
             On.LizardAI.DetermineBehavior += LizardAI_DetermineBehavior;
@@ -83,49 +83,17 @@ namespace LizardEggs
             On.Player.DirectIntoHoles += Player_DirectIntoHoles;
         }
 
-        //private void Lizard_ctor(On.Lizard.orig_ctor orig, Lizard self, AbstractCreature abstractCreature, World world)
-        //{
-        //    LizardBreedParams prm = abstractCreature.creatureTemplate.breedParameters as LizardBreedParams;
-        //    if (self.GetData() is Features.Data data && data.stage != -1)
-        //    {
-        //        switch (data.stage)
-        //        {
-        //            case 0:
-        //                prm.bodySizeFac *= 0.3f;
-        //                prm.headSize *= 0.3f;
-        //                prm.limbSize *= 0.3f;
-        //                break;
-        //            case 1:
-        //                prm.bodySizeFac *= 1.5f;
-        //                prm.headSize *= 1.5f;
-        //                prm.limbSize *= 1.5f;
-        //                break;
-        //            case 2:
-        //                prm.bodySizeFac *= 1 + 1f / 3f;
-        //                prm.headSize *= 1 + 1f / 3f;
-        //                prm.limbSize *= 1 + 1f / 3f;
-        //                break;
-        //            case 3:
-        //                prm.bodySizeFac *= 1.25f;
-        //                prm.headSize *= 1.25f;
-        //                prm.limbSize *= 1.25f;
-        //                break;
-        //            case 4:
-        //                prm.bodySizeFac *= 1.2f;
-        //                prm.headSize *= 1.2f;
-        //                prm.limbSize *= 1.2f;
-        //                break;
-        //            default:
-        //                prm.bodySizeFac *= 1f + 1f / 9f;
-        //                prm.headSize *= 1f + 1f / 9f;
-        //                prm.limbSize *= 1f + 1f / 9f;
-        //                data.stage = -1;
-        //                break;
-        //        }
-        //        abstractCreature.creatureTemplate.breedParameters = prm;
-        //    }
-        //    orig(self, abstractCreature, world);
-        //}
+        private void LizardGraphics_ctor(On.LizardGraphics.orig_ctor orig, LizardGraphics self, PhysicalObject ow)
+        {
+            orig(self, ow);
+            if ((ow as Lizard).abstractCreature.GetData() is FCustom.Data data && data.isChild)
+            {
+                self.iVars.fatness = 0.6f;
+                self.iVars.headSize = 0.7f;
+                self.iVars.tailFatness = 0.8f;
+                self.iVars.tailLength = 0.6f;
+            }
+        }
 
         //private void Lizard_Update(On.Lizard.orig_Update orig, Lizard self, bool eu)
         //{
@@ -209,7 +177,7 @@ namespace LizardEggs
         {
             if (item.type == Register.LizardEgg)
             {
-                int data = Features.ColorToInt((item as AbstractLizardEgg).color);
+                int data = FCustom.ColorToInt((item as AbstractLizardEgg).color);
                 return new IconSymbol.IconSymbolData?(new IconSymbol.IconSymbolData(CreatureTemplate.Type.StandardGroundCreature, item.type, data));
             }
             return orig(item);
@@ -218,7 +186,7 @@ namespace LizardEggs
         private Color ItemSymbol_ColorForItem(On.ItemSymbol.orig_ColorForItem orig, AbstractPhysicalObject.AbstractObjectType itemType, int intData)
         {
             if (itemType == Register.LizardEgg)
-                return Color.Lerp(Features.IntToColor(intData), Color.black, 0.4f);
+                return Color.Lerp(FCustom.IntToColor(intData), Color.black, 0.4f);
             return orig(itemType, intData);
         }
 
@@ -238,7 +206,7 @@ namespace LizardEggs
                         ID: EntityID.FromString(array[0]),
                         parentID: EntityID.FromString(array[5]),
                         size: float.Parse(array[4]),
-                        color: Features.IntToColor(int.Parse(array[3])),
+                        color: FCustom.IntToColor(int.Parse(array[3])),
                         stage: int.Parse(array[6]) + 1,
                         parentType: array[7]
                     )
@@ -261,7 +229,7 @@ namespace LizardEggs
                 if (shortCutData.startCoord.CompareDisregardingNode(self.room.LocalCoordinateOfNode(i)))
                 {
                     WorldCoordinate den = new WorldCoordinate(shortCutData.startCoord.room, -1, -1, i);
-                    if (EggsInDen.ContainsKey(den) && EggsInDen[den].Item2 > 0 && self.FreeHand() != -1 && self.input[0].pckp)
+                    if (EggsInDen.ContainsKey(den) && EggsInDen[den].Item2 > 0 && self.FreeHand() != -1 && self.input[0].pckp && !self.room.abstractRoom.shelter)
                     {
                         Lizard liz = (EggsInDen[den].Item1?.realizedCreature as Lizard) ?? new Lizard(EggsInDen[den].Item1, self.room.world);
                         float size = (EggsInDen[den].Item1.creatureTemplate.type == CreatureTemplate.Type.GreenLizard) ? liz.lizardParams.bodyMass - 3 : liz.lizardParams.bodyMass;
