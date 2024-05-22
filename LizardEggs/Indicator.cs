@@ -2,7 +2,7 @@
 
 namespace LizardEggs
 {
-    class Indicator : CosmeticSprite
+    public class Indicator : CosmeticSprite
     {
         public Indicator(WorldCoordinate den, Room room)
         {

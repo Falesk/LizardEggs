@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace LizardEggs
 {
-    class LizardEgg : PlayerCarryableItem, IPlayerEdible, IDrawable
+    public class LizardEgg : PlayerCarryableItem, IPlayerEdible, IDrawable
     {
         public AbstractLizardEgg AbstractLizardEgg => abstractPhysicalObject as AbstractLizardEgg;
         public LizardEgg(AbstractPhysicalObject abstractPhysicalObject) : base(abstractPhysicalObject)
@@ -77,6 +77,8 @@ namespace LizardEggs
                 light = new LightSource(firstChunk.pos, false, color, this);
                 room.AddObject(light);
             }
+
+            if (AbstractLizardEgg.stage == 1 && room.abstractRoom.shelter) SpawnLizard();
         }
         public override void PlaceInRoom(Room placeRoom)
         {
@@ -170,6 +172,20 @@ namespace LizardEggs
         }
         public void ThrowByPlayer()
         {
+        }
+        public void SpawnLizard()
+        {
+            AbstractCreature abstr = new AbstractCreature(room.world, FCustom.CreatureTemplateFromType(AbstractLizardEgg.parentType), null, AbstractLizardEgg.pos, room.game.GetNewID(AbstractLizardEgg.parentID.spawner));
+            room.abstractRoom.AddEntity(abstr);
+            if (abstr.GetData() is FCustom.Data data)
+                data.isChild = true;
+            abstr.RealizeInRoom();
+            Lizard liz = abstr.realizedCreature as Lizard;
+            liz.mainBodyChunk.HardSetPosition(room.MiddleOfTile(AbstractLizardEgg.pos.Tile));
+            Player player = room.PlayersInRoom[Random.Range(0, room.PlayersInRoom.Count)];
+            liz.AI.friendTracker.friend = player;
+            liz.AI.LizardPlayerRelationChange(1f, player.abstractCreature);
+            Destroy();
         }
 
         public int BitesLeft => bites;
