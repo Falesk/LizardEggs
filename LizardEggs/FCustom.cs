@@ -5,6 +5,7 @@ namespace LizardEggs
 {
     public static class FCustom
     {
+        // CWT
         public class Data
         {
             public Data(AbstractCreature self)
@@ -16,6 +17,7 @@ namespace LizardEggs
         static ConditionalWeakTable<AbstractCreature, Data> lizardData = new ConditionalWeakTable<AbstractCreature, Data>();
         public static Data GetData(this AbstractCreature self) => lizardData.GetValue(self, x => new Data(x));
 
+        // Custom methods
         public static int ColorToInt(Color color)
         {
             int val = 0;

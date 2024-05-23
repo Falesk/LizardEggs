@@ -15,6 +15,7 @@ namespace LizardEggs
         public const string Version = "1.0.0";
         public void Awake()
         {
+            // Registering / Unregistering
             Register.RegisterValues();
             On.RainWorld.OnModsDisabled += delegate (On.RainWorld.orig_OnModsDisabled orig, RainWorld self, ModManager.Mod[] newlyDisabledMods)
             {
@@ -28,6 +29,8 @@ namespace LizardEggs
                     }
                 }
             };
+
+            // Slugpups stuff
             On.MoreSlugcats.SlugNPCAI.GetFoodType += delegate (On.MoreSlugcats.SlugNPCAI.orig_GetFoodType orig, SlugNPCAI self, PhysicalObject food)
             {
                 if (food is LizardEgg)
@@ -47,11 +50,15 @@ namespace LizardEggs
                 }
                 orig(self, food);
             };
+
+            // New 'EggsInDen'
             On.World.ctor += delegate (On.World.orig_ctor orig, World self, RainWorldGame game, Region region, string name, bool singleRoomWorld)
             {
                 orig(self, game, region, name, singleRoomWorld);
                 EggsInDen = new Dictionary<WorldCoordinate, (AbstractCreature, int)>();
             };
+
+            // Player stuff
             On.Player.Grabability += delegate (On.Player.orig_Grabability orig, Player self, PhysicalObject obj)
             {
                 if (obj is LizardEgg) return Player.ObjectGrabability.TwoHands;
@@ -66,6 +73,7 @@ namespace LizardEggs
                 return orig(slugcatIndex, eatenobject);
             };
 
+            // Lizard stuff
             On.LizardAI.DoIWantToHoldThisWithMyTongue += (On.LizardAI.orig_DoIWantToHoldThisWithMyTongue orig, LizardAI self, BodyChunk chunk) => orig(self, chunk) || (chunk != null && chunk.owner.room == self.lizard.room && (chunk.owner.abstractPhysicalObject as AbstractLizardEgg)?.parentID == self.creature.ID);
             On.Lizard.CarryObject += delegate (On.Lizard.orig_CarryObject orig, Lizard self, bool eu)
             {
@@ -97,7 +105,18 @@ namespace LizardEggs
                     self.iVars.tailLength = 0.6f;
                 }
             };
+            On.LizardGraphics.HeadColor += delegate (On.LizardGraphics.orig_HeadColor orig, LizardGraphics self, float timeStacker)
+            {
+                try
+                {
+                    if (self.lizard.abstractCreature.GetData() is FCustom.Data data && data.egg != null && data.egg.Room == self.lizard.room.abstractRoom)
+                        return Color.Lerp(self.HeadColor1, self.HeadColor2, (data.egg.realizedObject as LizardEgg).Luminance);
+                }
+                catch { }
+                return orig(self, timeStacker);
+            };
 
+            // Icon
             On.ItemSymbol.ColorForItem += delegate (On.ItemSymbol.orig_ColorForItem orig, AbstractPhysicalObject.AbstractObjectType itemType, int intData)
             {
                 if (itemType == Register.LizardEgg)
@@ -119,8 +138,8 @@ namespace LizardEggs
                 return orig(itemType, intData);
             };
 
+            // Major delegates
             On.Lizard.Update += Lizard_Update;
-            On.LizardGraphics.HeadColor += LizardGraphics_HeadColor;
             On.RoomCamera.ChangeRoom += RoomCamera_ChangeRoom;
             On.SaveState.AbstractPhysicalObjectFromString += SaveState_AbstractPhysicalObjectFromString;
             On.Player.DirectIntoHoles += Player_DirectIntoHoles;
@@ -151,17 +170,6 @@ namespace LizardEggs
             //    egg.Destroy();
             //}
             orig(self, eu);
-        }
-
-        private Color LizardGraphics_HeadColor(On.LizardGraphics.orig_HeadColor orig, LizardGraphics self, float timeStacker)
-        {
-            try
-            {
-                if (self.lizard.abstractCreature.GetData() is FCustom.Data data && data.egg != null && data.egg.Room == self.lizard.room.abstractRoom)
-                    return Color.Lerp(self.HeadColor1, self.HeadColor2, (data.egg.realizedObject as LizardEgg).Luminance);
-            }
-            catch { }
-            return orig(self, timeStacker);
         }
 
         private void RoomCamera_ChangeRoom(On.RoomCamera.orig_ChangeRoom orig, RoomCamera self, Room newRoom, int cameraPosition)
@@ -261,6 +269,7 @@ namespace LizardEggs
                 }
             }
         }
+
         public bool AddToEggsDict(World world, AbstractCreature abstr)
         {
             if (EggsInDen.ContainsKey(abstr.spawnDen))
