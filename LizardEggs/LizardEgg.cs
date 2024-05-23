@@ -9,7 +9,7 @@ namespace LizardEggs
         public LizardEgg(AbstractPhysicalObject abstractPhysicalObject) : base(abstractPhysicalObject)
         {
             bodyChunks = new BodyChunk[1];
-            bodyChunks[0] = new BodyChunk(this, 0, new Vector2(0f, 0f), 8, 0.2f * AbstractLizardEgg.size);
+            bodyChunks[0] = new BodyChunk(this, 0, new Vector2(0f, 0f), 8, 0.2f * AbstractLizardEgg.size * (1f + 0.2f * AbstractLizardEgg.stage));
             bodyChunkConnections = new BodyChunkConnection[0];
             gravity = 0.9f;
             airFriction = 0.999f;
@@ -48,9 +48,15 @@ namespace LizardEggs
             foreach (AbstractCreature abstr in room.abstractRoom.creatures)
                 if (abstr.ID == AbstractLizardEgg.parentID)
                     flag = true;
-            if (flag)
+            if (flag && AbstractLizardEgg.stage == 0)
             {
                 lightIntensity += 0.025f;
+                if (lightIntensity > 1f)
+                    lightIntensity = -1;
+            }
+            else if (AbstractLizardEgg.realizedObject != null && AbstractLizardEgg.stage == 2)
+            {
+                lightIntensity += 0.01f;
                 if (lightIntensity > 1f)
                     lightIntensity = -1;
             }
@@ -67,10 +73,7 @@ namespace LizardEggs
                 light.setPos = firstChunk.pos;
                 light.setAlpha = Mathf.Sin(AbsLightIntensity * Mathf.PI);
                 light.setRad = AbstractLizardEgg.size * 5 * (0.7f + Mathf.Pow(Mathf.Sin(AbsLightIntensity * Mathf.PI) * 0.7f, 1.6f));
-                if (light.slatedForDeletetion || light.room != room)
-                {
-                    light = null;
-                }
+                if (light.slatedForDeletetion || light.room != room) light = null;
             }
             else
             {
@@ -78,7 +81,7 @@ namespace LizardEggs
                 room.AddObject(light);
             }
 
-            if (AbstractLizardEgg.stage == 1 && room.abstractRoom.shelter) SpawnLizard();
+            if (AbstractLizardEgg.stage == 3 && room.abstractRoom.shelter) SpawnLizard();
         }
         public override void PlaceInRoom(Room placeRoom)
         {
@@ -92,21 +95,21 @@ namespace LizardEggs
         {
             sLeaser.sprites = new FSprite[4];
             sLeaser.sprites[0] = new FSprite("SnailShellA");
-            sLeaser.sprites[0].scale = 0.6f * AbstractLizardEgg.size;
+            sLeaser.sprites[0].scale = 0.6f * AbstractLizardEgg.size * (1f + 0.2f * AbstractLizardEgg.stage);
 
             sLeaser.sprites[1] = new FSprite("SnailShellB");
-            sLeaser.sprites[1].scale = 0.6f * AbstractLizardEgg.size;
+            sLeaser.sprites[1].scale = 0.6f * AbstractLizardEgg.size * (1f + 0.2f * AbstractLizardEgg.stage);
 
             sLeaser.sprites[2] = new FSprite("Futile_White")
             {
                 shader = rCam.game.rainWorld.Shaders["FlatLightBehindTerrain"],
-                scale = AbstractLizardEgg.size * 1.2f
+                scale = AbstractLizardEgg.size * 1.2f * (1f + 0.3f * AbstractLizardEgg.stage)
             };
 
             sLeaser.sprites[3] = new FSprite("Futile_White")
             {
                 shader = rCam.game.rainWorld.Shaders["LightSource"],
-                scale = AbstractLizardEgg.size * 6f
+                scale = AbstractLizardEgg.size * 6f * (1f + 0.4f * AbstractLizardEgg.stage)
             };
             AddToContainer(sLeaser, rCam, null);
         }
@@ -143,8 +146,13 @@ namespace LizardEggs
         {
             sLeaser.sprites[0].color = palette.blackColor;
             color = Color.Lerp(AbstractLizardEgg.color, palette.blackColor, darkness);
+            if (rCam.room.PlayersInRoom != null && rCam.room.PlayersInRoom.Count > 0)
+            {
+                try { color = Color.Lerp(color, PlayerGraphics.SlugcatColor(rCam.room.PlayersInRoom[0].slugcatStats?.name), 0.3f * AbstractLizardEgg.stage); }
+                catch { color = Color.Lerp(color, Color.white, 0.3f * AbstractLizardEgg.stage); }
+            }
             sLeaser.sprites[2].color = new Color(color.r, color.g * 1.1f, color.b * 1.2f);
-            sLeaser.sprites[3].color = Color.Lerp(color, new Color(1f, 1f, 1f), 0.3f);
+            sLeaser.sprites[3].color = Color.Lerp(color, Color.white, 0.3f);
         }
         public void AddToContainer(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, FContainer newContatiner)
         {
@@ -182,7 +190,7 @@ namespace LizardEggs
             abstr.RealizeInRoom();
             Lizard liz = abstr.realizedCreature as Lizard;
             liz.mainBodyChunk.HardSetPosition(room.MiddleOfTile(AbstractLizardEgg.pos.Tile));
-            Player player = room.PlayersInRoom[Random.Range(0, room.PlayersInRoom.Count)];
+            Player player = room.PlayersInRoom[0];
             liz.AI.friendTracker.friend = player;
             liz.AI.LizardPlayerRelationChange(1f, player.abstractCreature);
             Destroy();

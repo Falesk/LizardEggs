@@ -10,7 +10,7 @@ namespace LizardEggs
             this.room = room;
             pos = room.MiddleOfTile(room.LocalCoordinateOfNode(den.abstractNode).Tile);
             lizard = (Plugin.EggsInDen[den].Item1?.realizedCreature as Lizard) ?? new Lizard(Plugin.EggsInDen[den].Item1, room.world);
-            color = (lizard.effectColor == new Color(0, 0, 0)) ? new Color(0.5f, 0.5f, 0.5f) : lizard.effectColor;
+            color = lizard.effectColor;
         }
         public override void InitiateSprites(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam)
         {
@@ -19,7 +19,7 @@ namespace LizardEggs
             {
                 scale = 1.75f,
                 shader = rCam.room.game.rainWorld.Shaders["FlatLight"],
-                color = Color.Lerp(color, new Color(1f, 1f, 1f), 0.4f)
+                color = Color.Lerp(color, Color.white, 0.4f)
             };
             sLeaser.sprites[1] = new FSprite("Futile_White")
             {

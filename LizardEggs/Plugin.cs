@@ -61,38 +61,69 @@ namespace LizardEggs
             On.SlugcatStats.NourishmentOfObjectEaten += delegate (On.SlugcatStats.orig_NourishmentOfObjectEaten orig, SlugcatStats.Name slugcatIndex, IPlayerEdible eatenobject)
             {
                 if (ModManager.MSC && slugcatIndex == MoreSlugcatsEnums.SlugcatStatsName.Saint && eatenobject is LizardEgg)
-                {
                     return -1;
-                }
                 if ((slugcatIndex == SlugcatStats.Name.Red || (ModManager.MSC && slugcatIndex == MoreSlugcatsEnums.SlugcatStatsName.Artificer)) && eatenobject is LizardEgg)
-                {
                     return 8 * eatenobject.FoodPoints;
-                }
                 return orig(slugcatIndex, eatenobject);
             };
-            On.LizardGraphics.ctor += LizardGraphics_ctor;
+
+            On.LizardAI.DoIWantToHoldThisWithMyTongue += (On.LizardAI.orig_DoIWantToHoldThisWithMyTongue orig, LizardAI self, BodyChunk chunk) => orig(self, chunk) || (chunk != null && chunk.owner.room == self.lizard.room && (chunk.owner.abstractPhysicalObject as AbstractLizardEgg)?.parentID == self.creature.ID);
+            On.Lizard.CarryObject += delegate (On.Lizard.orig_CarryObject orig, Lizard self, bool eu)
+            {
+                if ((self.grasps[0].grabbed.abstractPhysicalObject as AbstractLizardEgg)?.parentID == self.abstractCreature.ID)
+                {
+                    self.grasps[0].grabbed.bodyChunks[self.grasps[0].chunkGrabbed].vel = self.mainBodyChunk.vel;
+                    self.grasps[0].grabbed.bodyChunks[self.grasps[0].chunkGrabbed].MoveFromOutsideMyUpdate(eu, self.mainBodyChunk.pos + Custom.DirVec(self.bodyChunks[1].pos, self.mainBodyChunk.pos) * 25f * self.lizardParams.headSize);
+                    return;
+                }
+                orig(self, eu);
+            };
+            On.LizardAI.DetermineBehavior += delegate (On.LizardAI.orig_DetermineBehavior orig, LizardAI self)
+            {
+                if (self.lizard.grasps[0] != null && (self.lizard.grasps[0].grabbed.abstractPhysicalObject as AbstractLizardEgg)?.parentID == self.creature.ID)
+                {
+                    self.currentUtility = 1f;
+                    return LizardAI.Behavior.ReturnPrey;
+                }
+                return orig(self);
+            };
+            On.LizardGraphics.ctor += delegate (On.LizardGraphics.orig_ctor orig, LizardGraphics self, PhysicalObject ow)
+            {
+                orig(self, ow);
+                if ((ow as Lizard).abstractCreature.GetData() is FCustom.Data data && data.isChild) // Тут надо умножать!!
+                {
+                    self.iVars.fatness = 0.6f;
+                    self.iVars.headSize = 0.7f;
+                    self.iVars.tailFatness = 0.8f;
+                    self.iVars.tailLength = 0.6f;
+                }
+            };
+
+            On.ItemSymbol.ColorForItem += delegate (On.ItemSymbol.orig_ColorForItem orig, AbstractPhysicalObject.AbstractObjectType itemType, int intData)
+            {
+                if (itemType == Register.LizardEgg)
+                    return Color.Lerp(FCustom.IntToColor(intData), Color.black, 0.4f);
+                return orig(itemType, intData);
+            };
+            On.ItemSymbol.SymbolDataFromItem += delegate (On.ItemSymbol.orig_SymbolDataFromItem orig, AbstractPhysicalObject item)
+            {
+                if (item.type == Register.LizardEgg)
+                {
+                    int data = FCustom.ColorToInt((item as AbstractLizardEgg).color);
+                    return new IconSymbol.IconSymbolData?(new IconSymbol.IconSymbolData(CreatureTemplate.Type.StandardGroundCreature, item.type, data));
+                }
+                return orig(item);
+            };
+            On.ItemSymbol.SpriteNameForItem += delegate (On.ItemSymbol.orig_SpriteNameForItem orig, AbstractPhysicalObject.AbstractObjectType itemType, int intData)
+            {
+                if (itemType == Register.LizardEgg) return "HipsA";
+                return orig(itemType, intData);
+            };
+
             //On.Lizard.Update += Lizard_Update;
-            On.LizardAI.DoIWantToHoldThisWithMyTongue += LizardAI_DoIWantToHoldThisWithMyTongue;
-            On.LizardAI.DetermineBehavior += LizardAI_DetermineBehavior;
-            On.Lizard.CarryObject += Lizard_CarryObject;
             On.RoomCamera.ChangeRoom += RoomCamera_ChangeRoom;
             On.SaveState.AbstractPhysicalObjectFromString += SaveState_AbstractPhysicalObjectFromString;
-            On.ItemSymbol.ColorForItem += ItemSymbol_ColorForItem;
-            On.ItemSymbol.SymbolDataFromItem += ItemSymbol_SymbolDataFromItem;
-            On.ItemSymbol.SpriteNameForItem += ItemSymbol_SpriteNameForItem;
             On.Player.DirectIntoHoles += Player_DirectIntoHoles;
-        }
-
-        private void LizardGraphics_ctor(On.LizardGraphics.orig_ctor orig, LizardGraphics self, PhysicalObject ow)
-        {
-            orig(self, ow);
-            if ((ow as Lizard).abstractCreature.GetData() is FCustom.Data data && data.isChild)
-            {
-                self.iVars.fatness = 0.6f;
-                self.iVars.headSize = 0.7f;
-                self.iVars.tailFatness = 0.8f;
-                self.iVars.tailLength = 0.6f;
-            }
         }
 
         //private void Lizard_Update(On.Lizard.orig_Update orig, Lizard self, bool eu)
@@ -110,32 +141,6 @@ namespace LizardEggs
         //    }
         //    orig(self, eu);
         //}
-
-        private bool LizardAI_DoIWantToHoldThisWithMyTongue(On.LizardAI.orig_DoIWantToHoldThisWithMyTongue orig, LizardAI self, BodyChunk chunk)
-        {
-            return orig(self, chunk) || (chunk != null && chunk.owner.room == self.lizard.room && (chunk.owner.abstractPhysicalObject as AbstractLizardEgg)?.parentID == self.creature.ID);
-        }
-
-        private LizardAI.Behavior LizardAI_DetermineBehavior(On.LizardAI.orig_DetermineBehavior orig, LizardAI self)
-        {
-            if (self.lizard.grasps[0] != null && (self.lizard.grasps[0].grabbed.abstractPhysicalObject as AbstractLizardEgg)?.parentID == self.creature.ID)
-            {
-                self.currentUtility = 1f;
-                return LizardAI.Behavior.ReturnPrey;
-            }
-            return orig(self);
-        }
-
-        private void Lizard_CarryObject(On.Lizard.orig_CarryObject orig, Lizard self, bool eu)
-        {
-            if ((self.grasps[0].grabbed.abstractPhysicalObject as AbstractLizardEgg)?.parentID == self.abstractCreature.ID)
-            {
-                self.grasps[0].grabbed.bodyChunks[self.grasps[0].chunkGrabbed].vel = self.mainBodyChunk.vel;
-                self.grasps[0].grabbed.bodyChunks[self.grasps[0].chunkGrabbed].MoveFromOutsideMyUpdate(eu, self.mainBodyChunk.pos + Custom.DirVec(self.bodyChunks[1].pos, self.mainBodyChunk.pos) * 25f * self.lizardParams.headSize);
-                return;
-            }
-            orig(self, eu);
-        }
 
         private void RoomCamera_ChangeRoom(On.RoomCamera.orig_ChangeRoom orig, RoomCamera self, Room newRoom, int cameraPosition)
         {
@@ -165,29 +170,6 @@ namespace LizardEggs
                     indicators.Add(indicator);
                 }
             }
-        }
-
-        private string ItemSymbol_SpriteNameForItem(On.ItemSymbol.orig_SpriteNameForItem orig, AbstractPhysicalObject.AbstractObjectType itemType, int intData)
-        {
-            if (itemType == Register.LizardEgg) return "HipsA";
-            return orig(itemType, intData);
-        }
-
-        private IconSymbol.IconSymbolData? ItemSymbol_SymbolDataFromItem(On.ItemSymbol.orig_SymbolDataFromItem orig, AbstractPhysicalObject item)
-        {
-            if (item.type == Register.LizardEgg)
-            {
-                int data = FCustom.ColorToInt((item as AbstractLizardEgg).color);
-                return new IconSymbol.IconSymbolData?(new IconSymbol.IconSymbolData(CreatureTemplate.Type.StandardGroundCreature, item.type, data));
-            }
-            return orig(item);
-        }
-
-        private Color ItemSymbol_ColorForItem(On.ItemSymbol.orig_ColorForItem orig, AbstractPhysicalObject.AbstractObjectType itemType, int intData)
-        {
-            if (itemType == Register.LizardEgg)
-                return Color.Lerp(FCustom.IntToColor(intData), Color.black, 0.4f);
-            return orig(itemType, intData);
         }
 
         private AbstractPhysicalObject SaveState_AbstractPhysicalObjectFromString(On.SaveState.orig_AbstractPhysicalObjectFromString orig, World world, string objString)
@@ -246,7 +228,10 @@ namespace LizardEggs
                             Indicator ind = null;
                             foreach (Indicator indicator in indicators)
                                 if (indicator.den == den)
+                                {
                                     ind = indicator;
+                                    break;
+                                }
                             self.room.RemoveObject(ind);
                             indicators.Remove(ind);
                         }
