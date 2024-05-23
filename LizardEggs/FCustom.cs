@@ -11,6 +11,7 @@ namespace LizardEggs
             {
             }
             public bool isChild = false;
+            public AbstractLizardEgg egg = null;
         }
         static ConditionalWeakTable<AbstractCreature, Data> lizardData = new ConditionalWeakTable<AbstractCreature, Data>();
         public static Data GetData(this AbstractCreature self) => lizardData.GetValue(self, x => new Data(x));

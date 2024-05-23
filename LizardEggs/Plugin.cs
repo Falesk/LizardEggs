@@ -1,9 +1,9 @@
 ﻿using BepInEx;
 using MoreSlugcats;
+using RWCustom;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using RWCustom;
 
 namespace LizardEggs
 {
@@ -51,7 +51,6 @@ namespace LizardEggs
             {
                 orig(self, game, region, name, singleRoomWorld);
                 EggsInDen = new Dictionary<WorldCoordinate, (AbstractCreature, int)>();
-                removedEggs = new List<AbstractLizardEgg>();
             };
             On.Player.Grabability += delegate (On.Player.orig_Grabability orig, Player self, PhysicalObject obj)
             {
@@ -120,27 +119,50 @@ namespace LizardEggs
                 return orig(itemType, intData);
             };
 
-            //On.Lizard.Update += Lizard_Update;
+            On.Lizard.Update += Lizard_Update;
+            On.LizardGraphics.HeadColor += LizardGraphics_HeadColor;
             On.RoomCamera.ChangeRoom += RoomCamera_ChangeRoom;
             On.SaveState.AbstractPhysicalObjectFromString += SaveState_AbstractPhysicalObjectFromString;
             On.Player.DirectIntoHoles += Player_DirectIntoHoles;
         }
 
-        //private void Lizard_Update(On.Lizard.orig_Update orig, Lizard self, bool eu)
-        //{
-        //    if (!self.abstractCreature.InDen && self.grasps[0] != null && self.grasps[0].grabbed.abstractPhysicalObject is AbstractLizardEgg egg && Custom.Dist(self.room.MiddleOfTile(self.abstractCreature.pos.Tile), self.room.MiddleOfTile(self.abstractCreature.spawnDen.Tile)) < 40f)
-        //    {
-        //        var a = EggsInDen[self.abstractCreature.spawnDen];
-        //        a.Item2++;
-        //        EggsInDen[self.abstractCreature.spawnDen] = a;
-        //        Indicator indicator = new Indicator(self.abstractCreature.spawnDen, self.room);
-        //        self.LoseAllGrasps();
-        //        self.room.AddObject(indicator);
-        //        indicators.Add(indicator);
-        //        egg.Destroy();
-        //    }
-        //    orig(self, eu);
-        //}
+        private void Lizard_Update(On.Lizard.orig_Update orig, Lizard self, bool eu)
+        {
+            foreach (PhysicalObject obj in self.room.physicalObjects[1])
+                if (self.abstractCreature.GetData() is FCustom.Data data)
+                {
+                    if (obj is LizardEgg egg && egg.AbstractLizardEgg.parentID == self.abstractCreature.ID)
+                    {
+                        data.egg = egg.abstractPhysicalObject as AbstractLizardEgg;
+                        if (self.graphicsModule as LizardGraphics != null)
+                            (self.graphicsModule as LizardGraphics).lightSource.alpha = (data.egg.realizedObject as LizardEgg).Luminance;
+                        break;
+                    }
+                }
+            //if (!self.abstractCreature.InDen && self.grasps[0] != null && self.grasps[0].grabbed.abstractPhysicalObject is AbstractLizardEgg egg && Custom.Dist(self.room.MiddleOfTile(self.abstractCreature.pos.Tile), self.room.MiddleOfTile(self.abstractCreature.spawnDen.Tile)) < 40f)
+            //{
+            //    var a = EggsInDen[self.abstractCreature.spawnDen];
+            //    a.Item2++;
+            //    EggsInDen[self.abstractCreature.spawnDen] = a;
+            //    Indicator indicator = new Indicator(self.abstractCreature.spawnDen, self.room);
+            //    self.LoseAllGrasps();
+            //    self.room.AddObject(indicator);
+            //    indicators.Add(indicator);
+            //    egg.Destroy();
+            //}
+            orig(self, eu);
+        }
+
+        private Color LizardGraphics_HeadColor(On.LizardGraphics.orig_HeadColor orig, LizardGraphics self, float timeStacker)
+        {
+            try
+            {
+                if (self.lizard.abstractCreature.GetData() is FCustom.Data data && data.egg != null && data.egg.Room == self.lizard.room.abstractRoom)
+                    return Color.Lerp(self.HeadColor1, self.HeadColor2, (data.egg.realizedObject as LizardEgg).Luminance);
+            }
+            catch { }
+            return orig(self, timeStacker);
+        }
 
         private void RoomCamera_ChangeRoom(On.RoomCamera.orig_ChangeRoom orig, RoomCamera self, Room newRoom, int cameraPosition)
         {
@@ -219,7 +241,6 @@ namespace LizardEggs
                         self.abstractCreature.Room.AddEntity(abstractEgg);
                         abstractEgg.RealizeInRoom();
                         self.SlugcatGrab(abstractEgg.realizedObject, self.FreeHand());
-                        removedEggs.Add(abstractEgg as AbstractLizardEgg);
                         var a = EggsInDen[den];
                         a.Item2--;
                         EggsInDen[den] = a;
@@ -259,7 +280,6 @@ namespace LizardEggs
         }
         public static Dictionary<WorldCoordinate, (AbstractCreature, int)> EggsInDen { get; private set; }
         public List<Indicator> indicators;
-        public List<AbstractLizardEgg> removedEggs;
         public Room lastRoom;
     }
 }

@@ -62,7 +62,7 @@ namespace LizardEggs
             }
             else
             {
-                if (AbsLightIntensity < 0.01f)
+                if (Mathf.Abs(lightIntensity) < 0.01f)
                     lightIntensity = 0;
                 else if (lightIntensity > 0)
                     lightIntensity -= 0.025f;
@@ -71,8 +71,8 @@ namespace LizardEggs
             if (light != null)
             {
                 light.setPos = firstChunk.pos;
-                light.setAlpha = Mathf.Sin(AbsLightIntensity * Mathf.PI);
-                light.setRad = AbstractLizardEgg.size * 5 * (0.7f + Mathf.Pow(Mathf.Sin(AbsLightIntensity * Mathf.PI) * 0.7f, 1.6f));
+                light.setAlpha = Luminance;
+                light.setRad = AbstractLizardEgg.size * 5 * (0.7f + Mathf.Pow(Luminance * 0.7f, 1.6f));
                 if (light.slatedForDeletetion || light.room != room) light = null;
             }
             else
@@ -131,10 +131,10 @@ namespace LizardEggs
             {
                 sLeaser.sprites[2].x = vector.x - camPos.x - v.x * 3f;
                 sLeaser.sprites[2].y = vector.y - camPos.y - v.y * 3f;
-                sLeaser.sprites[2].alpha = Mathf.Sin(AbsLightIntensity * Mathf.PI);
+                sLeaser.sprites[2].alpha = Luminance;
                 sLeaser.sprites[3].x = vector.x - camPos.x - v.x * 3f;
                 sLeaser.sprites[3].y = vector.y - camPos.y - v.y * 3f;
-                sLeaser.sprites[3].alpha = Mathf.Sin(AbsLightIntensity * Mathf.PI);
+                sLeaser.sprites[3].alpha = Luminance;
             }
             if (blink > 0 && Random.value < 0.5f)
                 sLeaser.sprites[1].color = blinkColor;
@@ -200,7 +200,7 @@ namespace LizardEggs
         public int FoodPoints => (AbstractLizardEgg.size > 1.24f) ? 2 : 1;
         public bool Edible => true;
         public bool AutomaticPickUp => true;
-        public float AbsLightIntensity => Mathf.Abs(lightIntensity);
+        public float Luminance => Mathf.Sin(Mathf.Abs(lightIntensity) * Mathf.PI);
         public Vector2 rotation;
         public Vector2 lastRotation;
         public Vector2? setRotation;
