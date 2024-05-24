@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using UnityEngine;
 
 namespace LizardEggs
@@ -45,5 +46,11 @@ namespace LizardEggs
             return StaticWorld.GetCreatureTemplate(s);
         }
         public static CreatureTemplate CreatureTemplateFromType(CreatureTemplate.Type type) => CreatureTemplateFromType(type.value);
+        public static void ChangeDictTouple<T, P>(Dictionary<T, (P, int)> dict, T key, int value)
+        {
+            var a = dict[key];
+            a.Item2 += value;
+            dict[key] = a;
+        }
     }
 }

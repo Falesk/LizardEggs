@@ -77,7 +77,7 @@ namespace LizardEggs
             On.LizardAI.DoIWantToHoldThisWithMyTongue += (On.LizardAI.orig_DoIWantToHoldThisWithMyTongue orig, LizardAI self, BodyChunk chunk) => orig(self, chunk) || (chunk != null && chunk.owner.room == self.lizard.room && (chunk.owner.abstractPhysicalObject as AbstractLizardEgg)?.parentID == self.creature.ID);
             On.Lizard.CarryObject += delegate (On.Lizard.orig_CarryObject orig, Lizard self, bool eu)
             {
-                if ((self.grasps[0].grabbed.abstractPhysicalObject as AbstractLizardEgg)?.parentID == self.abstractCreature.ID)
+                if (self.grasps[0]?.grabbed != null && (self.grasps[0].grabbed.abstractPhysicalObject as AbstractLizardEgg)?.parentID == self.abstractCreature.ID)
                 {
                     self.grasps[0].grabbed.bodyChunks[self.grasps[0].chunkGrabbed].vel = self.mainBodyChunk.vel;
                     self.grasps[0].grabbed.bodyChunks[self.grasps[0].chunkGrabbed].MoveFromOutsideMyUpdate(eu, self.mainBodyChunk.pos + Custom.DirVec(self.bodyChunks[1].pos, self.mainBodyChunk.pos) * 25f * self.lizardParams.headSize);
@@ -139,36 +139,55 @@ namespace LizardEggs
             };
 
             // Major delegates
+            On.LizardAI.Update += LizardAI_Update;
             On.Lizard.Update += Lizard_Update;
             On.RoomCamera.ChangeRoom += RoomCamera_ChangeRoom;
             On.SaveState.AbstractPhysicalObjectFromString += SaveState_AbstractPhysicalObjectFromString;
             On.Player.DirectIntoHoles += Player_DirectIntoHoles;
         }
 
+        private void LizardAI_Update(On.LizardAI.orig_Update orig, LizardAI self)
+        {
+            orig(self);
+            if (self.creature.GetData() is FCustom.Data data && data.egg != null)
+            {
+                if (self.pathFinder.CoordinateReachableAndGetbackable(data.egg.pos))
+                {
+                    self.creature.abstractAI.SetDestination(data.egg.pos);
+                    self.runSpeed = Mathf.Lerp(self.runSpeed, 1f, 0.75f);
+                }
+                else self.behavior = LizardAI.Behavior.Frustrated;
+            }
+        }
+
         private void Lizard_Update(On.Lizard.orig_Update orig, Lizard self, bool eu)
         {
             foreach (PhysicalObject obj in self.room.physicalObjects[1])
-                if (self.abstractCreature.GetData() is FCustom.Data data)
+                if (self.abstractCreature.GetData() is FCustom.Data data && obj is LizardEgg egg && egg.AbstractLizardEgg.parentID == self.abstractCreature.ID)
                 {
-                    if (obj is LizardEgg egg && egg.AbstractLizardEgg.parentID == self.abstractCreature.ID)
-                    {
+                    if (data.egg == null)
                         data.egg = egg.abstractPhysicalObject as AbstractLizardEgg;
-                        if (self.graphicsModule as LizardGraphics != null)
-                            (self.graphicsModule as LizardGraphics).lightSource.alpha = (data.egg.realizedObject as LizardEgg).Luminance;
-                        break;
+                    if ((self.graphicsModule as LizardGraphics)?.lightSource != null)
+                        (self.graphicsModule as LizardGraphics).lightSource.alpha = (data.egg.realizedObject as LizardEgg).Luminance;
+                    if (self.grasps[0]?.grabbed == null && Vector2.Distance(self.firstChunk.pos, data.egg.realizedObject.firstChunk.pos) < 20f)
+                    {
+                        self.Bite(data.egg.realizedObject.firstChunk);
+                        self.CarryObject(eu);
                     }
+                    break;
                 }
-            //if (!self.abstractCreature.InDen && self.grasps[0] != null && self.grasps[0].grabbed.abstractPhysicalObject is AbstractLizardEgg egg && Custom.Dist(self.room.MiddleOfTile(self.abstractCreature.pos.Tile), self.room.MiddleOfTile(self.abstractCreature.spawnDen.Tile)) < 40f)
-            //{
-            //    var a = EggsInDen[self.abstractCreature.spawnDen];
-            //    a.Item2++;
-            //    EggsInDen[self.abstractCreature.spawnDen] = a;
-            //    Indicator indicator = new Indicator(self.abstractCreature.spawnDen, self.room);
-            //    self.LoseAllGrasps();
-            //    self.room.AddObject(indicator);
-            //    indicators.Add(indicator);
-            //    egg.Destroy();
-            //}
+            if (self.grasps[0]?.grabbed != null && self.grasps[0].grabbed is LizardEgg && self.enteringShortCut != null && self.room.shortcutData((IntVector2)self.enteringShortCut).shortCutType == ShortcutData.Type.CreatureHole && self.abstractCreature.GetData() is FCustom.Data data1)
+            {
+                PhysicalObject egg = self.grasps[0].grabbed;
+                self.LoseAllGrasps();
+                egg.Destroy();
+                self.AI.behavior = LizardAI.Behavior.Idle;
+                data1.egg = null;
+                FCustom.ChangeDictTouple(EggsInDen, self.abstractCreature.spawnDen, 1);
+                Indicator indicator = new Indicator(self.abstractCreature.spawnDen, self.room);
+                self.room.AddObject(indicator);
+                indicators.Add(indicator);
+            }
             orig(self, eu);
         }
 
@@ -249,9 +268,7 @@ namespace LizardEggs
                         self.abstractCreature.Room.AddEntity(abstractEgg);
                         abstractEgg.RealizeInRoom();
                         self.SlugcatGrab(abstractEgg.realizedObject, self.FreeHand());
-                        var a = EggsInDen[den];
-                        a.Item2--;
-                        EggsInDen[den] = a;
+                        FCustom.ChangeDictTouple(EggsInDen, den, -1);
                         if (EggsInDen[den].Item2 == 0)
                         {
                             Indicator ind = null;
@@ -280,11 +297,7 @@ namespace LizardEggs
             int amount = (world.GetSpawner(abstr.ID) as World.SimpleSpawner)?.amount ?? 1;
             for (int i = 0; i < amount; i++)
                 if (UnityEngine.Random.value < 1f) //0.4!!!
-                {
-                    var a = EggsInDen[abstr.spawnDen];
-                    a.Item2++;
-                    EggsInDen[abstr.spawnDen] = a;
-                }
+                    FCustom.ChangeDictTouple(EggsInDen, abstr.spawnDen, 1);
             return true;
         }
         public static Dictionary<WorldCoordinate, (AbstractCreature, int)> EggsInDen { get; private set; }
