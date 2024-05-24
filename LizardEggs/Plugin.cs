@@ -3,6 +3,7 @@ using MoreSlugcats;
 using RWCustom;
 using System;
 using System.Collections.Generic;
+using Unity.Mathematics;
 using UnityEngine;
 
 namespace LizardEggs
@@ -77,13 +78,17 @@ namespace LizardEggs
             On.LizardAI.DoIWantToHoldThisWithMyTongue += (On.LizardAI.orig_DoIWantToHoldThisWithMyTongue orig, LizardAI self, BodyChunk chunk) => orig(self, chunk) || (chunk != null && chunk.owner.room == self.lizard.room && (chunk.owner.abstractPhysicalObject as AbstractLizardEgg)?.parentID == self.creature.ID);
             On.Lizard.CarryObject += delegate (On.Lizard.orig_CarryObject orig, Lizard self, bool eu)
             {
-                if (self.grasps[0]?.grabbed != null && (self.grasps[0].grabbed.abstractPhysicalObject as AbstractLizardEgg)?.parentID == self.abstractCreature.ID)
+                try
                 {
-                    self.grasps[0].grabbed.bodyChunks[self.grasps[0].chunkGrabbed].vel = self.mainBodyChunk.vel;
-                    self.grasps[0].grabbed.bodyChunks[self.grasps[0].chunkGrabbed].MoveFromOutsideMyUpdate(eu, self.mainBodyChunk.pos + Custom.DirVec(self.bodyChunks[1].pos, self.mainBodyChunk.pos) * 25f * self.lizardParams.headSize);
-                    return;
+                    if (self.grasps[0]?.grabbed != null && (self.grasps[0].grabbed.abstractPhysicalObject as AbstractLizardEgg)?.parentID == self.abstractCreature.ID)
+                    {
+                        self.grasps[0].grabbed.bodyChunks[self.grasps[0].chunkGrabbed].vel = self.mainBodyChunk.vel;
+                        self.grasps[0].grabbed.bodyChunks[self.grasps[0].chunkGrabbed].MoveFromOutsideMyUpdate(eu, self.mainBodyChunk.pos + Custom.DirVec(self.bodyChunks[1].pos, self.mainBodyChunk.pos) * 25f * self.lizardParams.headSize);
+                        return;
+                    }
+                    orig(self, eu);
                 }
-                orig(self, eu);
+                catch { orig(self, eu); }
             };
             On.LizardAI.DetermineBehavior += delegate (On.LizardAI.orig_DetermineBehavior orig, LizardAI self)
             {
@@ -94,15 +99,27 @@ namespace LizardEggs
                 }
                 return orig(self);
             };
+            On.LizardAI.Update += delegate (On.LizardAI.orig_Update orig, LizardAI self)
+            {
+                orig(self);
+                if (self.creature.GetData() is FCustom.Data data && data.egg != null)
+                {
+                    if (self.pathFinder.CoordinateReachableAndGetbackable(data.egg.pos))
+                    {
+                        self.creature.abstractAI.SetDestination(data.egg.pos);
+                        self.runSpeed = Mathf.Lerp(self.runSpeed, 1f, 0.75f);
+                    }
+                    else self.behavior = LizardAI.Behavior.Frustrated;
+                }
+            };
             On.LizardGraphics.ctor += delegate (On.LizardGraphics.orig_ctor orig, LizardGraphics self, PhysicalObject ow)
             {
                 orig(self, ow);
-                if ((ow as Lizard).abstractCreature.GetData() is FCustom.Data data && data.isChild) // Тут надо умножать!!
+                if ((ow as Lizard).abstractCreature.GetData() is FCustom.Data data && data.isChild)
                 {
-                    self.iVars.fatness = 0.6f;
-                    self.iVars.headSize = 0.7f;
-                    self.iVars.tailFatness = 0.8f;
-                    self.iVars.tailLength = 0.6f;
+                    self.iVars.fatness *= 0.5f;
+                    self.iVars.headSize *= 0.8f;
+                    self.iVars.tailLength *= 0.6f;
                 }
             };
             On.LizardGraphics.HeadColor += delegate (On.LizardGraphics.orig_HeadColor orig, LizardGraphics self, float timeStacker)
@@ -139,43 +156,49 @@ namespace LizardEggs
             };
 
             // Major delegates
-            On.LizardAI.Update += LizardAI_Update;
             On.Lizard.Update += Lizard_Update;
             On.RoomCamera.ChangeRoom += RoomCamera_ChangeRoom;
             On.SaveState.AbstractPhysicalObjectFromString += SaveState_AbstractPhysicalObjectFromString;
             On.Player.DirectIntoHoles += Player_DirectIntoHoles;
         }
 
-        private void LizardAI_Update(On.LizardAI.orig_Update orig, LizardAI self)
-        {
-            orig(self);
-            if (self.creature.GetData() is FCustom.Data data && data.egg != null)
-            {
-                if (self.pathFinder.CoordinateReachableAndGetbackable(data.egg.pos))
-                {
-                    self.creature.abstractAI.SetDestination(data.egg.pos);
-                    self.runSpeed = Mathf.Lerp(self.runSpeed, 1f, 0.75f);
-                }
-                else self.behavior = LizardAI.Behavior.Frustrated;
-            }
-        }
-
         private void Lizard_Update(On.Lizard.orig_Update orig, Lizard self, bool eu)
         {
+            if (self.abstractCreature.InDen) return;
             foreach (PhysicalObject obj in self.room.physicalObjects[1])
-                if (self.abstractCreature.GetData() is FCustom.Data data && obj is LizardEgg egg && egg.AbstractLizardEgg.parentID == self.abstractCreature.ID)
+            {
+                if (self.abstractCreature.GetData() is FCustom.Data data)
                 {
-                    if (data.egg == null)
-                        data.egg = egg.abstractPhysicalObject as AbstractLizardEgg;
-                    if ((self.graphicsModule as LizardGraphics)?.lightSource != null)
-                        (self.graphicsModule as LizardGraphics).lightSource.alpha = (data.egg.realizedObject as LizardEgg).Luminance;
-                    if (self.grasps[0]?.grabbed == null && Vector2.Distance(self.firstChunk.pos, data.egg.realizedObject.firstChunk.pos) < 20f)
+                    if (obj is Player player && self.AI.VisualContact(player.mainBodyChunk) && player.grasps[0] != null && player.grasps[0].grabbed is LizardEgg && (player.grasps[0].grabbed as LizardEgg).AbstractLizardEgg.parentID == self.abstractCreature.ID && !data.sawPlayerWithEgg)
                     {
-                        self.Bite(data.egg.realizedObject.firstChunk);
-                        self.CarryObject(eu);
+                        data.sawPlayerWithEgg = true;
+                        self.AI.LizardPlayerRelationChange(-1f, player.abstractCreature);
+                        var personality = self.abstractCreature.personality;
+                        if (math.lerp(personality.sympathy, personality.aggression, personality.nervous) < 2f * personality.sympathy * personality.bravery)
+                        {
+                            self.AI.behavior = LizardAI.Behavior.Hunt;
+                            self.AI.preyTracker.currentPrey = new PreyTracker.TrackedPrey(self.AI.preyTracker, self.AI.CreateTrackerRepresentationForCreature(player.abstractCreature));
+                            self.animation = Lizard.Animation.HearSound;
+                            self.timeToRemainInAnimation = 40;
+                            self.bubbleIntensity = 0.3f;
+                            break;
+                        }
                     }
-                    break;
+                    if (obj is LizardEgg egg && egg.AbstractLizardEgg.parentID == self.abstractCreature.ID)
+                    {
+                        if (data.egg == null)
+                            data.egg = egg.abstractPhysicalObject as AbstractLizardEgg;
+                        if ((self.graphicsModule as LizardGraphics)?.lightSource != null)
+                            (self.graphicsModule as LizardGraphics).lightSource.alpha = (data.egg.realizedObject as LizardEgg).Luminance;
+                        if (self.grasps[0]?.grabbed == null && Vector2.Distance(self.firstChunk.pos, data.egg.realizedObject.firstChunk.pos) < 20f)
+                        {
+                            self.Bite(data.egg.realizedObject.firstChunk);
+                            self.CarryObject(eu);
+                        }
+                        break;
+                    }
                 }
+            }
             if (self.grasps[0]?.grabbed != null && self.grasps[0].grabbed is LizardEgg && self.enteringShortCut != null && self.room.shortcutData((IntVector2)self.enteringShortCut).shortCutType == ShortcutData.Type.CreatureHole && self.abstractCreature.GetData() is FCustom.Data data1)
             {
                 PhysicalObject egg = self.grasps[0].grabbed;
