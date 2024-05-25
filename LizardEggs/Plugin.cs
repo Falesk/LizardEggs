@@ -52,7 +52,7 @@ namespace LizardEggs
                 orig(self, food);
             };
 
-            // New 'EggsInDen'
+            // Other
             On.World.ctor += delegate (On.World.orig_ctor orig, World self, RainWorldGame game, Region region, string name, bool singleRoomWorld)
             {
                 orig(self, game, region, name, singleRoomWorld);
@@ -77,11 +77,23 @@ namespace LizardEggs
                     Debug.Log("olivkamega (RW fan) was right");
                 }
             };
+            On.WinState.CycleCompleted += delegate (On.WinState.orig_CycleCompleted orig, WinState self, RainWorldGame game)
+            {
+                if (ModManager.MSC && eggInShelter && game.GetStorySession.playerSessionRecords[0].pupCountInDen == 0 && self.GetTracker(MoreSlugcatsEnums.EndgameID.Mother, eggInShelter) is WinState.FloatTracker tracker && tracker != null)
+                {
+                    tracker.SetProgress(eggMotherProgress + 0.167f);
+                    eggMotherProgress = tracker.progress;
+                }
+                orig(self, game);
+                if (ModManager.MSC && eggInShelter && game.GetStorySession.playerSessionRecords[0].pupCountInDen == 0 && self.GetTracker(MoreSlugcatsEnums.EndgameID.Mother, eggInShelter) is WinState.FloatTracker tracker1 && tracker1 != null)
+                    tracker1.SetProgress(eggMotherProgress);
+            };
 
             // Player stuff
             On.Player.Grabability += delegate (On.Player.orig_Grabability orig, Player self, PhysicalObject obj)
             {
-                if (obj is LizardEgg) return Player.ObjectGrabability.TwoHands;
+                if (obj is LizardEgg)
+                    return Player.ObjectGrabability.TwoHands;
                 return orig(self, obj);
             };
             On.SlugcatStats.NourishmentOfObjectEaten += delegate (On.SlugcatStats.orig_NourishmentOfObjectEaten orig, SlugcatStats.Name slugcatIndex, IPlayerEdible eatenobject)
@@ -91,6 +103,15 @@ namespace LizardEggs
                 if ((slugcatIndex == SlugcatStats.Name.Red || (ModManager.MSC && slugcatIndex == MoreSlugcatsEnums.SlugcatStatsName.Artificer)) && eatenobject is LizardEgg)
                     return 8 * eatenobject.FoodPoints;
                 return orig(slugcatIndex, eatenobject);
+            };
+            On.Player.Update += delegate (On.Player.orig_Update orig, Player self, bool eu)
+            {
+                orig(self, eu);
+                bool flag = false;
+                if (self.room != null && self.room.abstractRoom.shelter)
+                    foreach (PhysicalObject obj in self.room.physicalObjects[1])
+                        if (obj is LizardEgg) flag = true;
+                eggInShelter = flag;
             };
 
             // Lizard AI stuff
@@ -127,9 +148,9 @@ namespace LizardEggs
                         self.grasps[0].grabbed.bodyChunks[self.grasps[0].chunkGrabbed].MoveFromOutsideMyUpdate(eu, self.mainBodyChunk.pos + Custom.DirVec(self.bodyChunks[1].pos, self.mainBodyChunk.pos) * 25f * self.lizardParams.headSize);
                         return;
                     }
-                    orig(self, eu);
                 }
-                catch { orig(self, eu); }
+                catch { }
+                orig(self, eu);
             };
 
             // Lizard Graphics
@@ -357,5 +378,7 @@ namespace LizardEggs
         private static bool[] code = new bool[10];
         public List<Indicator> indicators;
         public Room lastRoom;
+        public bool eggInShelter;
+        public float eggMotherProgress = 0f;
     }
 }

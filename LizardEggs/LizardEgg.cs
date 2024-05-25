@@ -9,7 +9,7 @@ namespace LizardEggs
         public LizardEgg(AbstractPhysicalObject abstractPhysicalObject) : base(abstractPhysicalObject)
         {
             bodyChunks = new BodyChunk[1];
-            bodyChunks[0] = new BodyChunk(this, 0, new Vector2(0f, 0f), 8, 0.2f * AbstractLizardEgg.size * (1f + 0.2f * AbstractLizardEgg.stage));
+            bodyChunks[0] = new BodyChunk(this, 0, new Vector2(0f, 0f), 8 * (1f + 0.2f * AbstractLizardEgg.stage), 0.2f * AbstractLizardEgg.size * (1f + 0.2f * AbstractLizardEgg.stage));
             bodyChunkConnections = new BodyChunkConnection[0];
             gravity = 0.9f;
             airFriction = 0.999f;
