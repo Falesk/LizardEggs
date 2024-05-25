@@ -103,13 +103,13 @@ namespace LizardEggs
             sLeaser.sprites[2] = new FSprite("Futile_White")
             {
                 shader = rCam.game.rainWorld.Shaders["FlatLightBehindTerrain"],
-                scale = AbstractLizardEgg.size * 1.2f * (1f + 0.3f * AbstractLizardEgg.stage)
+                scale = AbstractLizardEgg.size * 1.2f * (1f + 0.1f * AbstractLizardEgg.stage)
             };
 
             sLeaser.sprites[3] = new FSprite("Futile_White")
             {
                 shader = rCam.game.rainWorld.Shaders["LightSource"],
-                scale = AbstractLizardEgg.size * 6f * (1f + 0.4f * AbstractLizardEgg.stage)
+                scale = AbstractLizardEgg.size * 6f * (1f + 0.2f * AbstractLizardEgg.stage)
             };
             AddToContainer(sLeaser, rCam, null);
         }
@@ -204,7 +204,7 @@ namespace LizardEggs
         public Vector2 rotation;
         public Vector2 lastRotation;
         public Vector2? setRotation;
-        public float lightIntensity = 0;
+        public float lightIntensity = 0f;
         public float darkness;
         public float lastDarkness;
         public int bites = 3;

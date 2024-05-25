@@ -185,15 +185,13 @@ namespace LizardEggs
             On.ItemSymbol.SymbolDataFromItem += delegate (On.ItemSymbol.orig_SymbolDataFromItem orig, AbstractPhysicalObject item)
             {
                 if (item.type == Register.LizardEgg)
-                {
-                    int data = FCustom.ColorToInt((item as AbstractLizardEgg).color);
-                    return new IconSymbol.IconSymbolData?(new IconSymbol.IconSymbolData(CreatureTemplate.Type.StandardGroundCreature, item.type, data));
-                }
+                    return new IconSymbol.IconSymbolData?(new IconSymbol.IconSymbolData(CreatureTemplate.Type.StandardGroundCreature, item.type, FCustom.ColorToInt((item as AbstractLizardEgg).color)));
                 return orig(item);
             };
             On.ItemSymbol.SpriteNameForItem += delegate (On.ItemSymbol.orig_SpriteNameForItem orig, AbstractPhysicalObject.AbstractObjectType itemType, int intData)
             {
-                if (itemType == Register.LizardEgg) return "HipsA";
+                if (itemType == Register.LizardEgg)
+                    return "HipsA";
                 return orig(itemType, intData);
             };
 
@@ -206,17 +204,18 @@ namespace LizardEggs
 
         private void Lizard_Update(On.Lizard.orig_Update orig, Lizard self, bool eu)
         {
-            if (self.abstractCreature.InDen) return;
+            if (self.abstractCreature.InDen)
+                return;
             foreach (PhysicalObject obj in self.room.physicalObjects[1])
             {
                 if (self.abstractCreature.GetData() is FCustom.Data data)
                 {
-                    if (obj is Player player && self.AI.VisualContact(player.mainBodyChunk) && player.grasps[0] != null && player.grasps[0].grabbed is LizardEgg && (player.grasps[0].grabbed as LizardEgg).AbstractLizardEgg.parentID == self.abstractCreature.ID && !data.sawPlayerWithEgg)
+                    if (!data.sawPlayerWithEgg && obj is Player player && self.AI.VisualContact(player.mainBodyChunk) && player.grasps[0] != null && player.grasps[0].grabbed is LizardEgg && (player.grasps[0].grabbed as LizardEgg).AbstractLizardEgg.parentID == self.abstractCreature.ID)
                     {
                         data.sawPlayerWithEgg = true;
                         self.AI.LizardPlayerRelationChange(-1f, player.abstractCreature);
                         var personality = self.abstractCreature.personality;
-                        if (math.lerp(personality.sympathy, personality.aggression, personality.nervous) < 2f * personality.sympathy * personality.bravery)
+                        if (math.lerp(personality.sympathy, personality.aggression, personality.nervous) > 2f * personality.sympathy * personality.bravery)
                         {
                             self.AI.behavior = LizardAI.Behavior.Hunt;
                             self.AI.preyTracker.currentPrey = new PreyTracker.TrackedPrey(self.AI.preyTracker, self.AI.CreateTrackerRepresentationForCreature(player.abstractCreature));
@@ -294,18 +293,7 @@ namespace LizardEggs
                 AbstractPhysicalObject.AbstractObjectType abstractObjectType = new AbstractPhysicalObject.AbstractObjectType(array[1], false);
                 if (abstractObjectType == Register.LizardEgg)
                 {
-                    AbstractPhysicalObject abstrEgg = new AbstractLizardEgg
-                    (
-                        world: world,
-                        obj: null,
-                        pos: WorldCoordinate.FromString(array[2]),
-                        ID: EntityID.FromString(array[0]),
-                        parentID: EntityID.FromString(array[5]),
-                        size: float.Parse(array[4]),
-                        color: FCustom.IntToColor(int.Parse(array[3])),
-                        stage: int.Parse(array[6]) + 1,
-                        parentType: array[7]
-                    )
+                    AbstractPhysicalObject abstrEgg = new AbstractLizardEgg(world, null, WorldCoordinate.FromString(array[2]), EntityID.FromString(array[0]), EntityID.FromString(array[5]), float.Parse(array[4]), FCustom.IntToColor(int.Parse(array[3])), array[7], int.Parse(array[6]) + 1)
                     { unrecognizedAttributes = SaveUtils.PopulateUnrecognizedStringAttrs(array, 8) };
                     return abstrEgg;
                 }
@@ -362,9 +350,7 @@ namespace LizardEggs
 
         public bool AddToEggsDict(World world, AbstractCreature abstr)
         {
-            if (EggsInDen.ContainsKey(abstr.spawnDen))
-                return false;
-            if (!abstr.spawnDen.NodeDefined)
+            if (EggsInDen.ContainsKey(abstr.spawnDen) || !abstr.spawnDen.NodeDefined)
                 return false;
             EggsInDen.Add(abstr.spawnDen, (abstr, 0));
             int amount = (world.GetSpawner(abstr.ID) as World.SimpleSpawner)?.amount ?? 1;
