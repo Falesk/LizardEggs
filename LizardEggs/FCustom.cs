@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using MoreSlugcats;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using UnityEngine;
 
@@ -47,11 +48,34 @@ namespace LizardEggs
             return StaticWorld.GetCreatureTemplate(s);
         }
         public static CreatureTemplate CreatureTemplateFromType(CreatureTemplate.Type type) => CreatureTemplateFromType(type.value);
-        public static void ChangeDictTouple<T, P>(Dictionary<T, (P, int)> dict, T key, int value)
+        public static void ChangeDictTuple<T, P>(Dictionary<T, (P, int)> dict, T key, int value)
         {
             var a = dict[key];
             a.Item2 += value;
             dict[key] = a;
+        }
+        public static float EggSpawnChance(SlugcatStats.Name name)
+        {
+            if (name == SlugcatStats.Name.Red)
+                return 0.285f;
+            if (name == SlugcatStats.Name.Yellow)
+                return 0.4f;
+            if (ModManager.MSC)
+            {
+                if (name == MoreSlugcatsEnums.SlugcatStatsName.Spear)
+                    return 0.35f;
+                if (name == MoreSlugcatsEnums.SlugcatStatsName.Artificer)
+                    return 0.2f;
+                if (name == MoreSlugcatsEnums.SlugcatStatsName.Gourmand)
+                    return 0.3f;
+                if (name == MoreSlugcatsEnums.SlugcatStatsName.Rivulet)
+                    return 0.385f;
+                if (name == MoreSlugcatsEnums.SlugcatStatsName.Saint)
+                    return 0.1f;
+                if (name == MoreSlugcatsEnums.SlugcatStatsName.Sofanthiel)
+                    return 1f;
+            }
+            return 0.333f;
         }
     }
 }

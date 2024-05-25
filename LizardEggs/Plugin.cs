@@ -58,6 +58,25 @@ namespace LizardEggs
                 orig(self, game, region, name, singleRoomWorld);
                 EggsInDen = new Dictionary<WorldCoordinate, (AbstractCreature, int)>();
             };
+            On.Player.ProcessDebugInputs += delegate (On.Player.orig_ProcessDebugInputs orig, Player self)
+            {
+                orig(self);
+                if (self.input[0].y > 0 && !code[0]) Code(0);
+                if (self.input[0].y > 0 && code[0]) Code(1);
+                if (self.input[0].y < 0 && code[1]) Code(2);
+                if (self.input[0].y < 0 && code[2]) Code(3);
+                if (self.input[0].x < 0 && code[3]) Code(4);
+                if (self.input[0].x > 0 && code[4]) Code(5);
+                if (self.input[0].x < 0 && code[5]) Code(6);
+                if (self.input[0].x > 0 && code[6]) Code(7);
+                if (self.input[0].thrw && code[7]) Code(8);
+                if (self.input[0].pckp && code[8]) Code(9);
+                if (Input.GetKeyDown(KeyCode.Return) && code[9])
+                {
+                    code[9] = false;
+                    Debug.Log("olivkamega (RW fan) was right");
+                }
+            };
 
             // Player stuff
             On.Player.Grabability += delegate (On.Player.orig_Grabability orig, Player self, PhysicalObject obj)
@@ -74,22 +93,8 @@ namespace LizardEggs
                 return orig(slugcatIndex, eatenobject);
             };
 
-            // Lizard stuff
+            // Lizard AI stuff
             On.LizardAI.DoIWantToHoldThisWithMyTongue += (On.LizardAI.orig_DoIWantToHoldThisWithMyTongue orig, LizardAI self, BodyChunk chunk) => orig(self, chunk) || (chunk != null && chunk.owner.room == self.lizard.room && (chunk.owner.abstractPhysicalObject as AbstractLizardEgg)?.parentID == self.creature.ID);
-            On.Lizard.CarryObject += delegate (On.Lizard.orig_CarryObject orig, Lizard self, bool eu)
-            {
-                try
-                {
-                    if (self.grasps[0]?.grabbed != null && (self.grasps[0].grabbed.abstractPhysicalObject as AbstractLizardEgg)?.parentID == self.abstractCreature.ID)
-                    {
-                        self.grasps[0].grabbed.bodyChunks[self.grasps[0].chunkGrabbed].vel = self.mainBodyChunk.vel;
-                        self.grasps[0].grabbed.bodyChunks[self.grasps[0].chunkGrabbed].MoveFromOutsideMyUpdate(eu, self.mainBodyChunk.pos + Custom.DirVec(self.bodyChunks[1].pos, self.mainBodyChunk.pos) * 25f * self.lizardParams.headSize);
-                        return;
-                    }
-                    orig(self, eu);
-                }
-                catch { orig(self, eu); }
-            };
             On.LizardAI.DetermineBehavior += delegate (On.LizardAI.orig_DetermineBehavior orig, LizardAI self)
             {
                 if (self.lizard.grasps[0] != null && (self.lizard.grasps[0].grabbed.abstractPhysicalObject as AbstractLizardEgg)?.parentID == self.creature.ID)
@@ -112,6 +117,22 @@ namespace LizardEggs
                     else self.behavior = LizardAI.Behavior.Frustrated;
                 }
             };
+            On.Lizard.CarryObject += delegate (On.Lizard.orig_CarryObject orig, Lizard self, bool eu)
+            {
+                try
+                {
+                    if (self.grasps[0]?.grabbed != null && (self.grasps[0].grabbed.abstractPhysicalObject as AbstractLizardEgg)?.parentID == self.abstractCreature.ID)
+                    {
+                        self.grasps[0].grabbed.bodyChunks[self.grasps[0].chunkGrabbed].vel = self.mainBodyChunk.vel;
+                        self.grasps[0].grabbed.bodyChunks[self.grasps[0].chunkGrabbed].MoveFromOutsideMyUpdate(eu, self.mainBodyChunk.pos + Custom.DirVec(self.bodyChunks[1].pos, self.mainBodyChunk.pos) * 25f * self.lizardParams.headSize);
+                        return;
+                    }
+                    orig(self, eu);
+                }
+                catch { orig(self, eu); }
+            };
+
+            // Lizard Graphics
             On.LizardGraphics.ctor += delegate (On.LizardGraphics.orig_ctor orig, LizardGraphics self, PhysicalObject ow)
             {
                 orig(self, ow);
@@ -206,7 +227,7 @@ namespace LizardEggs
                 egg.Destroy();
                 self.AI.behavior = LizardAI.Behavior.Idle;
                 data1.egg = null;
-                FCustom.ChangeDictTouple(EggsInDen, self.abstractCreature.spawnDen, 1);
+                FCustom.ChangeDictTuple(EggsInDen, self.abstractCreature.spawnDen, 1);
                 Indicator indicator = new Indicator(self.abstractCreature.spawnDen, self.room);
                 self.room.AddObject(indicator);
                 indicators.Add(indicator);
@@ -283,7 +304,7 @@ namespace LizardEggs
                 if (shortCutData.startCoord.CompareDisregardingNode(self.room.LocalCoordinateOfNode(i)))
                 {
                     WorldCoordinate den = new WorldCoordinate(shortCutData.startCoord.room, -1, -1, i);
-                    if (EggsInDen.ContainsKey(den) && EggsInDen[den].Item2 > 0 && self.FreeHand() != -1 && self.input[0].pckp && !self.room.abstractRoom.shelter)
+                    if (EggsInDen.ContainsKey(den) && EggsInDen[den].Item2 > 0 && self.FreeHand() != -1 && self.input[0].pckp)
                     {
                         Lizard liz = (EggsInDen[den].Item1?.realizedCreature as Lizard) ?? new Lizard(EggsInDen[den].Item1, self.room.world);
                         float size = (EggsInDen[den].Item1.creatureTemplate.type == CreatureTemplate.Type.GreenLizard) ? liz.lizardParams.bodyMass - 3 : liz.lizardParams.bodyMass;
@@ -291,7 +312,7 @@ namespace LizardEggs
                         self.abstractCreature.Room.AddEntity(abstractEgg);
                         abstractEgg.RealizeInRoom();
                         self.SlugcatGrab(abstractEgg.realizedObject, self.FreeHand());
-                        FCustom.ChangeDictTouple(EggsInDen, den, -1);
+                        FCustom.ChangeDictTuple(EggsInDen, den, -1);
                         if (EggsInDen[den].Item2 == 0)
                         {
                             Indicator ind = null;
@@ -309,6 +330,14 @@ namespace LizardEggs
                 }
             }
         }
+        private static void Code(int ind)
+        {
+            for (int i = 0; i < 10; i++)
+            {
+                if (ind == i) code[i] = true;
+                else code[i] = false;
+            }
+        }
 
         public bool AddToEggsDict(World world, AbstractCreature abstr)
         {
@@ -318,12 +347,14 @@ namespace LizardEggs
                 return false;
             EggsInDen.Add(abstr.spawnDen, (abstr, 0));
             int amount = (world.GetSpawner(abstr.ID) as World.SimpleSpawner)?.amount ?? 1;
+            float chance = FCustom.EggSpawnChance((world.game.Players[0].realizedCreature as Player).playerState.slugcatCharacter);
             for (int i = 0; i < amount; i++)
-                if (UnityEngine.Random.value < 1f) //0.4!!!
-                    FCustom.ChangeDictTouple(EggsInDen, abstr.spawnDen, 1);
+                if (UnityEngine.Random.value < chance)
+                    FCustom.ChangeDictTuple(EggsInDen, abstr.spawnDen, 1);
             return true;
         }
         public static Dictionary<WorldCoordinate, (AbstractCreature, int)> EggsInDen { get; private set; }
+        private static bool[] code = new bool[10];
         public List<Indicator> indicators;
         public Room lastRoom;
     }
