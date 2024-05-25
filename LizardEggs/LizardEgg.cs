@@ -25,7 +25,6 @@ namespace LizardEggs
             base.Update(eu);
             if (room.game.devToolsActive && Input.GetKey("b"))
                 firstChunk.vel += Custom.DirVec(firstChunk.pos, Futile.mousePosition) * 3f;
-
             lastRotation = rotation;
             if (grabbedBy.Count > 0)
             {
@@ -42,6 +41,12 @@ namespace LizardEggs
                 rotation = (rotation - Custom.PerpendicularVector(rotation) * 0.1f * firstChunk.vel.x).normalized;
                 BodyChunk chunk = firstChunk;
                 chunk.vel.x *= 0.8f;
+            }
+            lastShaking--;
+            if (lastShaking < 0 && Random.value < 0.0025f && AbstractLizardEgg.stage > 0)
+            {
+                firstChunk.vel += Custom.RNV() * Random.Range(1f, 3f);
+                lastShaking = Random.Range(120 / AbstractLizardEgg.stage, 400 / AbstractLizardEgg.stage);
             }
 
             bool flag = false;
@@ -207,6 +212,7 @@ namespace LizardEggs
         public float lightIntensity = 0f;
         public float darkness;
         public float lastDarkness;
+        public int lastShaking = 200;
         public int bites = 3;
         public LightSource light;
     }
