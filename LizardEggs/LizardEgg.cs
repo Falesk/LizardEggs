@@ -9,7 +9,7 @@ namespace LizardEggs
         public LizardEgg(AbstractPhysicalObject abstractPhysicalObject) : base(abstractPhysicalObject)
         {
             bodyChunks = new BodyChunk[1];
-            bodyChunks[0] = new BodyChunk(this, 0, new Vector2(0f, 0f), 8 * (1f + 0.2f * AbstractLizardEgg.stage), 0.2f * AbstractLizardEgg.size * (1f + 0.2f * AbstractLizardEgg.stage));
+            bodyChunks[0] = new BodyChunk(this, 0, Vector2.zero, 8 * (1f + 0.15f * AbstractLizardEgg.stage), 0.2f * AbstractLizardEgg.size * (1f + 0.2f * AbstractLizardEgg.stage));
             bodyChunkConnections = new BodyChunkConnection[0];
             gravity = 0.9f;
             airFriction = 0.999f;
@@ -52,7 +52,10 @@ namespace LizardEggs
             bool flag = false;
             foreach (AbstractCreature abstr in room.abstractRoom.creatures)
                 if (abstr.ID == AbstractLizardEgg.parentID)
+                {
                     flag = true;
+                    break;
+                }
             if (flag && AbstractLizardEgg.stage == 0)
             {
                 lightIntensity += 0.025f;
@@ -78,7 +81,8 @@ namespace LizardEggs
                 light.setPos = firstChunk.pos;
                 light.setAlpha = Luminance;
                 light.setRad = AbstractLizardEgg.size * 5 * (0.7f + Mathf.Pow(Luminance * 0.7f, 1.6f));
-                if (light.slatedForDeletetion || light.room != room) light = null;
+                if (light.slatedForDeletetion || light.room != room)
+                    light = null;
             }
             else
             {
@@ -86,7 +90,8 @@ namespace LizardEggs
                 room.AddObject(light);
             }
 
-            if (AbstractLizardEgg.stage == 3 && room.abstractRoom.shelter) SpawnLizard();
+            if (AbstractLizardEgg.stage == 3)
+                SpawnLizard();
         }
         public override void PlaceInRoom(Room placeRoom)
         {
@@ -108,13 +113,13 @@ namespace LizardEggs
             sLeaser.sprites[2] = new FSprite("Futile_White")
             {
                 shader = rCam.game.rainWorld.Shaders["FlatLightBehindTerrain"],
-                scale = AbstractLizardEgg.size * 1.2f * (1f + 0.1f * AbstractLizardEgg.stage)
+                scale = AbstractLizardEgg.size * (1f + 0.1f * AbstractLizardEgg.stage)
             };
 
             sLeaser.sprites[3] = new FSprite("Futile_White")
             {
                 shader = rCam.game.rainWorld.Shaders["LightSource"],
-                scale = AbstractLizardEgg.size * 6f * (1f + 0.2f * AbstractLizardEgg.stage)
+                scale = AbstractLizardEgg.size * 3.5f * (1f + 0.2f * AbstractLizardEgg.stage)
             };
             AddToContainer(sLeaser, rCam, null);
         }
@@ -143,7 +148,7 @@ namespace LizardEggs
             }
             if (blink > 0 && Random.value < 0.5f)
                 sLeaser.sprites[1].color = blinkColor;
-            else sLeaser.sprites[1].color = color;
+            else sLeaser.sprites[1].color = Color.Lerp(color, rCam.currentPalette.blackColor, Luminance - 0.2f);
             if (slatedForDeletetion || room != rCam.room)
                 sLeaser.CleanSpritesAndRemove();
         }
@@ -156,7 +161,7 @@ namespace LizardEggs
                 try { color = Color.Lerp(color, PlayerGraphics.SlugcatColor(rCam.room.PlayersInRoom[0].slugcatStats?.name), 0.3f * AbstractLizardEgg.stage); }
                 catch { color = Color.Lerp(color, Color.white, 0.3f * AbstractLizardEgg.stage); }
             }
-            sLeaser.sprites[2].color = new Color(color.r, color.g * 1.1f, color.b * 1.2f);
+            sLeaser.sprites[2].color = new Color(color.r, Mathf.Clamp01(color.g * 1.1f), Mathf.Clamp01(color.b * 1.2f));
             sLeaser.sprites[3].color = Color.Lerp(color, Color.white, 0.3f);
         }
         public void AddToContainer(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, FContainer newContatiner)
@@ -174,7 +179,7 @@ namespace LizardEggs
         public void BitByPlayer(Creature.Grasp grasp, bool eu)
         {
             bites--;
-            room.PlaySound((bites == 0) ? SoundID.Slugcat_Eat_Water_Nut : SoundID.Slugcat_Bite_Water_Nut, firstChunk.pos);
+            room.PlaySound((bites == 0) ? SoundID.Slugcat_Eat_Slime_Mold : SoundID.Slugcat_Bite_Slime_Mold, firstChunk.pos);
             firstChunk.MoveFromOutsideMyUpdate(eu, grasp.grabber.mainBodyChunk.pos);
             if (bites < 1)
             {
