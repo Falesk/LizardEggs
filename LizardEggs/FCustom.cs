@@ -29,6 +29,7 @@ namespace LizardEggs
             val += (int)(color.b * 100);
             return val;
         }
+
         public static Color IntToColor(int val)
         {
             int r = val / 1000000;
@@ -36,6 +37,7 @@ namespace LizardEggs
             int b = val % 1000;
             return new Color((float)r / 100, (float)g / 100, (float)b / 100);
         }
+
         public static CreatureTemplate CreatureTemplateFromType(string str)
         {
             string s = str[0].ToString();
@@ -48,12 +50,14 @@ namespace LizardEggs
             return StaticWorld.GetCreatureTemplate(s);
         }
         public static CreatureTemplate CreatureTemplateFromType(CreatureTemplate.Type type) => CreatureTemplateFromType(type.value);
+
         public static void ChangeDictTuple<T, P>(Dictionary<T, (P, int)> dict, T key, int value)
         {
             var a = dict[key];
             a.Item2 += value;
             dict[key] = a;
         }
+
         public static float EggSpawnChance(SlugcatStats.Name name)
         {
             if (name == SlugcatStats.Name.Red)

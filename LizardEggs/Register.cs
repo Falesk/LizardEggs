@@ -9,6 +9,7 @@ namespace LizardEggs
             LizardEgg = new AbstractPhysicalObject.AbstractObjectType("LizardEgg", true);
             LizardEggNPCFood = new SlugNPCAI.Food("LizardEggNPCFood", true);
         }
+
         public static void UnregisterValues()
         {
             AbstractPhysicalObject.AbstractObjectType lizardEgg = LizardEgg;

@@ -43,10 +43,10 @@ namespace LizardEggs
                 if (food is LizardEgg)
                 {
                     float num = self.foodPreference[7];
-                    if (Mathf.Abs(num) > 0.4f)
+                    if (math.abs(num) > 0.4f)
                         self.foodReaction += (int)(num * 120f);
-                    if (Mathf.Abs(num) > 0.85f && self.FunStuff)
-                        self.cat.Stun((int)Mathf.Lerp(10f, 25f, Mathf.InverseLerp(0.85f, 1f, Mathf.Abs(num))));
+                    if (math.abs(num) > 0.85f && self.FunStuff)
+                        self.cat.Stun((int)math.lerp(10f, 25f, Mathf.InverseLerp(0.85f, 1f, math.abs(num))));
                     return;
                 }
                 orig(self, food);
@@ -84,6 +84,7 @@ namespace LizardEggs
                     tracker.SetProgress(eggMotherProgress + 0.167f);
                     eggMotherProgress = tracker.progress;
                 }
+                else eggMotherProgress = 0f;
                 orig(self, game);
                 if (ModManager.MSC && eggInShelter && game.GetStorySession.playerSessionRecords[0].pupCountInDen == 0 && self.GetTracker(MoreSlugcatsEnums.EndgameID.Mother, eggInShelter) is WinState.FloatTracker tracker1 && tracker1 != null)
                     tracker1.SetProgress(eggMotherProgress);
@@ -133,7 +134,7 @@ namespace LizardEggs
                     if (self.pathFinder.CoordinateReachableAndGetbackable(data.egg.pos))
                     {
                         self.creature.abstractAI.SetDestination(data.egg.pos);
-                        self.runSpeed = Mathf.Lerp(self.runSpeed, 1f, 0.75f);
+                        self.runSpeed = math.lerp(self.runSpeed, 1f, 0.75f);
                     }
                     else self.behavior = LizardAI.Behavior.Frustrated;
                 }
@@ -142,15 +143,15 @@ namespace LizardEggs
             {
                 try
                 {
-                    if (self.grasps[0]?.grabbed != null && (self.grasps[0].grabbed.abstractPhysicalObject as AbstractLizardEgg)?.parentID == self.abstractCreature.ID)
+                    if ((self.grasps[0].grabbed.abstractPhysicalObject as AbstractLizardEgg)?.parentID == self.abstractCreature.ID)
                     {
-                        self.grasps[0].grabbed.bodyChunks[self.grasps[0].chunkGrabbed].vel = self.mainBodyChunk.vel;
-                        self.grasps[0].grabbed.bodyChunks[self.grasps[0].chunkGrabbed].MoveFromOutsideMyUpdate(eu, self.mainBodyChunk.pos + Custom.DirVec(self.bodyChunks[1].pos, self.mainBodyChunk.pos) * 25f * self.lizardParams.headSize);
+                        self.grasps[0].grabbed.firstChunk.vel = self.mainBodyChunk.vel;
+                        self.grasps[0].grabbed.firstChunk.MoveFromOutsideMyUpdate(eu, self.mainBodyChunk.pos + Custom.DirVec(self.bodyChunks[1].pos, self.mainBodyChunk.pos) * 25f * self.lizardParams.headSize);
                         return;
                     }
+                    orig(self, eu);
                 }
-                catch { }
-                orig(self, eu);
+                catch { orig(self, eu); }
             };
 
             // Lizard Graphics
@@ -160,7 +161,7 @@ namespace LizardEggs
                 if ((ow as Lizard).abstractCreature.GetData() is FCustom.Data data && data.isChild)
                 {
                     self.iVars.fatness *= 0.5f;
-                    self.iVars.headSize *= 0.8f;
+                    self.iVars.headSize *= 0.7f;
                     self.iVars.tailLength *= 0.6f;
                 }
             };
@@ -339,6 +340,7 @@ namespace LizardEggs
                 }
             }
         }
+
         private static void Code(int ind)
         {
             for (int i = 0; i < 10; i++)
@@ -347,7 +349,6 @@ namespace LizardEggs
                 else code[i] = false;
             }
         }
-
         public bool AddToEggsDict(World world, AbstractCreature abstr)
         {
             if (EggsInDen.ContainsKey(abstr.spawnDen) || !abstr.spawnDen.NodeDefined)
@@ -360,6 +361,7 @@ namespace LizardEggs
                     FCustom.ChangeDictTuple(EggsInDen, abstr.spawnDen, 1);
             return true;
         }
+
         public static Dictionary<WorldCoordinate, (AbstractCreature, int)> EggsInDen { get; private set; }
         private static bool[] code = new bool[10];
         public List<Indicator> indicators;

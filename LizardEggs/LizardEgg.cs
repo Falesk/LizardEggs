@@ -93,6 +93,7 @@ namespace LizardEggs
             if (AbstractLizardEgg.stage == 3)
                 SpawnLizard();
         }
+
         public override void PlaceInRoom(Room placeRoom)
         {
             base.PlaceInRoom(placeRoom);
@@ -123,6 +124,7 @@ namespace LizardEggs
             };
             AddToContainer(sLeaser, rCam, null);
         }
+
         public void DrawSprites(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, float timeStacker, Vector2 camPos)
         {
             Vector2 vector = Vector2.Lerp(firstChunk.lastPos, firstChunk.pos, timeStacker);
@@ -148,10 +150,11 @@ namespace LizardEggs
             }
             if (blink > 0 && Random.value < 0.5f)
                 sLeaser.sprites[1].color = blinkColor;
-            else sLeaser.sprites[1].color = Color.Lerp(color, rCam.currentPalette.blackColor, Luminance - 0.2f);
+            else sLeaser.sprites[1].color = Color.Lerp(color, rCam.currentPalette.blackColor, Luminance - 0.2f - AbstractLizardEgg.stage * 0.2f);
             if (slatedForDeletetion || room != rCam.room)
                 sLeaser.CleanSpritesAndRemove();
         }
+
         public void ApplyPalette(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, RoomPalette palette)
         {
             sLeaser.sprites[0].color = palette.blackColor;
@@ -164,6 +167,7 @@ namespace LizardEggs
             sLeaser.sprites[2].color = new Color(color.r, Mathf.Clamp01(color.g * 1.1f), Mathf.Clamp01(color.b * 1.2f));
             sLeaser.sprites[3].color = Color.Lerp(color, Color.white, 0.3f);
         }
+
         public void AddToContainer(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, FContainer newContatiner)
         {
             if (newContatiner == null)
@@ -172,8 +176,11 @@ namespace LizardEggs
                 sprite.RemoveFromContainer();
             newContatiner.AddChild(sLeaser.sprites[0]);
             newContatiner.AddChild(sLeaser.sprites[1]);
-            rCam.ReturnFContainer("GrabShaders").AddChild(sLeaser.sprites[2]);
-            rCam.ReturnFContainer("Water").AddChild(sLeaser.sprites[3]);
+            if (Luminance != 0f)
+            {
+                rCam.ReturnFContainer("GrabShaders").AddChild(sLeaser.sprites[2]);
+                rCam.ReturnFContainer("Water").AddChild(sLeaser.sprites[3]);
+            }
         }
 
         public void BitByPlayer(Creature.Grasp grasp, bool eu)
@@ -188,12 +195,20 @@ namespace LizardEggs
                 Destroy();
             }
         }
+
         public void ThrowByPlayer()
         {
         }
+
         public void SpawnLizard()
         {
-            AbstractCreature abstr = new AbstractCreature(room.world, FCustom.CreatureTemplateFromType(AbstractLizardEgg.parentType), null, AbstractLizardEgg.pos, room.game.GetNewID(AbstractLizardEgg.parentID.spawner));
+            AbstractCreature abstr;
+            try { abstr = new AbstractCreature(room.world, FCustom.CreatureTemplateFromType(AbstractLizardEgg.parentType), null, AbstractLizardEgg.pos, room.game.GetNewID(AbstractLizardEgg.parentID.spawner)); }
+            catch
+            {
+                try { abstr = new AbstractCreature(room.world, StaticWorld.GetCreatureTemplate(AbstractLizardEgg.parentType), null, AbstractLizardEgg.pos, room.game.GetNewID(AbstractLizardEgg.parentID.spawner)); }
+                catch { abstr = new AbstractCreature(room.world, StaticWorld.GetCreatureTemplate(CreatureTemplate.Type.LizardTemplate), null, AbstractLizardEgg.pos, room.game.GetNewID(AbstractLizardEgg.parentID.spawner)); }
+            }
             room.abstractRoom.AddEntity(abstr);
             if (abstr.GetData() is FCustom.Data data)
                 data.isChild = true;

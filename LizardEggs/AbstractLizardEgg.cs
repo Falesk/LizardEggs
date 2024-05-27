@@ -13,11 +13,13 @@ namespace LizardEggs
             if (stage > 0) this.size = size;
             else this.size = Mathf.Sqrt(0.7f * Mathf.Pow(size, 0.7f));
         }
+
         public override void Realize()
         {
             if (realizedObject == null)
                 realizedObject = new LizardEgg(this);
         }
+
         public override string ToString()
         {
             string text = $"{ID}<oA>{type}<oA>{pos.SaveToString()}<oA>{FCustom.ColorToInt(color)}<oA>{size}<oA>{parentID}<oA>{stage}<oA>{parentType}";
