@@ -176,11 +176,8 @@ namespace LizardEggs
                 sprite.RemoveFromContainer();
             newContatiner.AddChild(sLeaser.sprites[0]);
             newContatiner.AddChild(sLeaser.sprites[1]);
-            if (Luminance != 0f)
-            {
-                rCam.ReturnFContainer("GrabShaders").AddChild(sLeaser.sprites[2]);
-                rCam.ReturnFContainer("Water").AddChild(sLeaser.sprites[3]);
-            }
+            rCam.ReturnFContainer("GrabShaders").AddChild(sLeaser.sprites[2]);
+            rCam.ReturnFContainer("Water").AddChild(sLeaser.sprites[3]);
         }
 
         public void BitByPlayer(Creature.Grasp grasp, bool eu)

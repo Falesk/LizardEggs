@@ -141,17 +141,15 @@ namespace LizardEggs
             };
             On.Lizard.CarryObject += delegate (On.Lizard.orig_CarryObject orig, Lizard self, bool eu)
             {
-                try
+                if (self?.grasps[0]?.grabbed == null)
+                    return;
+                if ((self.grasps[0].grabbed.abstractPhysicalObject as AbstractLizardEgg)?.parentID == self.abstractCreature.ID)
                 {
-                    if ((self.grasps[0].grabbed.abstractPhysicalObject as AbstractLizardEgg)?.parentID == self.abstractCreature.ID)
-                    {
-                        self.grasps[0].grabbed.firstChunk.vel = self.mainBodyChunk.vel;
-                        self.grasps[0].grabbed.firstChunk.MoveFromOutsideMyUpdate(eu, self.mainBodyChunk.pos + Custom.DirVec(self.bodyChunks[1].pos, self.mainBodyChunk.pos) * 25f * self.lizardParams.headSize);
-                        return;
-                    }
-                    orig(self, eu);
+                    self.grasps[0].grabbed.firstChunk.vel = self.mainBodyChunk.vel;
+                    self.grasps[0].grabbed.firstChunk.MoveFromOutsideMyUpdate(eu, self.mainBodyChunk.pos + Custom.DirVec(self.bodyChunks[1].pos, self.mainBodyChunk.pos) * 25f * self.lizardParams.headSize);
+                    return;
                 }
-                catch { orig(self, eu); }
+                orig(self, eu);
             };
 
             // Lizard Graphics
