@@ -13,7 +13,7 @@ namespace LizardEggs
     {
         public const string GUID = "falesk.lizardeggs";
         public const string Name = "Lizard Eggs";
-        public const string Version = "1.0.0";
+        public const string Version = "1.0.1";
         public void Awake()
         {
             // Registering / Unregistering
@@ -230,7 +230,7 @@ namespace LizardEggs
                             data.egg = egg.abstractPhysicalObject as AbstractLizardEgg;
                         if ((self.graphicsModule as LizardGraphics)?.lightSource != null)
                             (self.graphicsModule as LizardGraphics).lightSource.alpha = (data.egg.realizedObject as LizardEgg).Luminance;
-                        if (self.grasps[0]?.grabbed == null && Vector2.Distance(self.firstChunk.pos, data.egg.realizedObject.firstChunk.pos) < 20f)
+                        if (self.grasps[0]?.grabbed == null && Vector2.Distance(self.firstChunk.pos, data.egg.realizedObject.firstChunk.pos) < 20f && self.Consious)
                         {
                             self.Bite(data.egg.realizedObject.firstChunk);
                             self.CarryObject(eu);

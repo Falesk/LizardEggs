@@ -90,7 +90,7 @@ namespace LizardEggs
                 room.AddObject(light);
             }
 
-            if (AbstractLizardEgg.stage == 3)
+            if (AbstractLizardEgg.stage == 3 && room.PlayersInRoom?[0] != null)
                 SpawnLizard();
         }
 
@@ -215,6 +215,8 @@ namespace LizardEggs
             Player player = room.PlayersInRoom[0];
             liz.AI.friendTracker.friend = player;
             liz.AI.LizardPlayerRelationChange(1f, player.abstractCreature);
+            //foreach (Player pl in room.PlayersInRoom)
+            //    liz.AI.LizardPlayerRelationChange(1f, pl.abstractCreature);
             Destroy();
         }
 
