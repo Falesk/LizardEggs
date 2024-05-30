@@ -13,7 +13,7 @@ namespace LizardEggs
     {
         public const string GUID = "falesk.lizardeggs";
         public const string Name = "Lizard Eggs";
-        public const string Version = "1.0.1";
+        public const string Version = "1.0.2";
         public void Awake()
         {
             // Registering / Unregistering
@@ -128,7 +128,8 @@ namespace LizardEggs
             };
             On.LizardAI.Update += delegate (On.LizardAI.orig_Update orig, LizardAI self)
             {
-                orig(self);
+                if (self.behavior == LizardAI.Behavior.Flee && !RainWorldGame.RequestHeavyAi(self.lizard))
+                    return;
                 if (self.creature.GetData() is FCustom.Data data && data.egg != null)
                 {
                     if (self.pathFinder.CoordinateReachableAndGetbackable(data.egg.pos))
@@ -138,6 +139,7 @@ namespace LizardEggs
                     }
                     else self.behavior = LizardAI.Behavior.Frustrated;
                 }
+                orig(self);
             };
             On.Lizard.CarryObject += delegate (On.Lizard.orig_CarryObject orig, Lizard self, bool eu)
             {
@@ -257,6 +259,8 @@ namespace LizardEggs
         private void RoomCamera_ChangeRoom(On.RoomCamera.orig_ChangeRoom orig, RoomCamera self, Room newRoom, int cameraPosition)
         {
             orig(self, newRoom, cameraPosition);
+            if (ModManager.MSC && newRoom.game.rainWorld.safariMode)
+                return;
             foreach (AbstractRoom room in newRoom.world.abstractRooms)
                 foreach (AbstractCreature abstr in room.creatures)
                 {
@@ -292,6 +296,8 @@ namespace LizardEggs
                 AbstractPhysicalObject.AbstractObjectType abstractObjectType = new AbstractPhysicalObject.AbstractObjectType(array[1], false);
                 if (abstractObjectType == Register.LizardEgg)
                 {
+                    if (int.Parse(array[6]) == 4)
+                        return null;
                     AbstractPhysicalObject abstrEgg = new AbstractLizardEgg(world, null, WorldCoordinate.FromString(array[2]), EntityID.FromString(array[0]), EntityID.FromString(array[5]), float.Parse(array[4]), FCustom.IntToColor(int.Parse(array[3])), array[7], int.Parse(array[6]) + 1)
                     { unrecognizedAttributes = SaveUtils.PopulateUnrecognizedStringAttrs(array, 8) };
                     return abstrEgg;

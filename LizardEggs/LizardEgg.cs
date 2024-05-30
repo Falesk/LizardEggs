@@ -90,8 +90,20 @@ namespace LizardEggs
                 room.AddObject(light);
             }
 
-            if (AbstractLizardEgg.stage == 3 && room.PlayersInRoom?[0] != null)
-                SpawnLizard();
+            if (AbstractLizardEgg.stage > 2 && !lizAppear)
+            {
+                try
+                {
+                    if (SpawnLizard())
+                        lizAppear = true;
+                }
+                catch { }
+            }
+            if (lizAppear)
+            {
+                try { Destroy(); }
+                catch { }
+            }
         }
 
         public override void PlaceInRoom(Room placeRoom)
@@ -197,27 +209,34 @@ namespace LizardEggs
         {
         }
 
-        public void SpawnLizard()
+        public bool SpawnLizard()
         {
+            if (room == null)
+                return false;
             AbstractCreature abstr;
             try { abstr = new AbstractCreature(room.world, FCustom.CreatureTemplateFromType(AbstractLizardEgg.parentType), null, AbstractLizardEgg.pos, room.game.GetNewID(AbstractLizardEgg.parentID.spawner)); }
             catch
             {
                 try { abstr = new AbstractCreature(room.world, StaticWorld.GetCreatureTemplate(AbstractLizardEgg.parentType), null, AbstractLizardEgg.pos, room.game.GetNewID(AbstractLizardEgg.parentID.spawner)); }
-                catch { abstr = new AbstractCreature(room.world, StaticWorld.GetCreatureTemplate(CreatureTemplate.Type.LizardTemplate), null, AbstractLizardEgg.pos, room.game.GetNewID(AbstractLizardEgg.parentID.spawner)); }
+                catch { abstr = new AbstractCreature(room.world, StaticWorld.GetCreatureTemplate(CreatureTemplate.Type.LizardTemplate), null, AbstractLizardEgg.pos, room.game.GetNewID()); }
             }
             room.abstractRoom.AddEntity(abstr);
             if (abstr.GetData() is FCustom.Data data)
                 data.isChild = true;
             abstr.RealizeInRoom();
             Lizard liz = abstr.realizedCreature as Lizard;
+            liz.effectColor = AbstractLizardEgg.color;
             liz.mainBodyChunk.HardSetPosition(room.MiddleOfTile(AbstractLizardEgg.pos.Tile));
-            Player player = room.PlayersInRoom[0];
-            liz.AI.friendTracker.friend = player;
-            liz.AI.LizardPlayerRelationChange(1f, player.abstractCreature);
-            //foreach (Player pl in room.PlayersInRoom)
-            //    liz.AI.LizardPlayerRelationChange(1f, pl.abstractCreature);
-            Destroy();
+            if (room.PlayersInRoom != null && room.PlayersInRoom.Count > 0)
+            {
+                Player player = room.PlayersInRoom[0];
+                liz.AI.friendTracker.friend = player;
+                liz.AI.LizardPlayerRelationChange(1f, player.abstractCreature);
+                SocialMemory.Relationship relationship = liz.abstractCreature.state.socialMemory.GetOrInitiateRelationship(player.abstractCreature.ID);
+                relationship.InfluenceLike(1f);
+                relationship.InfluenceKnow(0f);
+            }
+            return true;
         }
 
         public int BitesLeft => bites;
@@ -234,5 +253,6 @@ namespace LizardEggs
         public int lastShaking = 200;
         public int bites = 3;
         public LightSource light;
+        public bool lizAppear;
     }
 }
