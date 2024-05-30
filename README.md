@@ -9,4 +9,6 @@ Eggs have a certain chance of appearing, depending on which slugcat you are play
 
 If you have a Steam version of the game, you can download the mod from the link: https://steamcommunity.com/sharedfiles/filedetails/?id=325690157
 
-If you cannot download the mod from Steam, download the latest release (archive): https://github.com/Falesk/LizardEggs/releases/tag/1.0.0
+If you cannot download the mod from Steam, download the latest release (archive): https://github.com/Falesk/LizardEggs/releases
+
+To download the mod, download the archive and unzip its contents (the folder with the mod) to the folder: RainWorld\RainWorld_Data\StreamingAssets\mods
