@@ -8,17 +8,17 @@ namespace LizardEggs
     public static class FCustom
     {
         // CWT
-        public class Data
+        public class CritData
         {
-            public Data(AbstractCreature self)
+            public CritData(AbstractCreature self)
             {
             }
             public bool isChild;
             public AbstractLizardEgg egg;
             public bool sawPlayerWithEgg;
         }
-        static ConditionalWeakTable<AbstractCreature, Data> lizardData = new ConditionalWeakTable<AbstractCreature, Data>();
-        public static Data GetData(this AbstractCreature self) => lizardData.GetValue(self, x => new Data(x));
+        static ConditionalWeakTable<AbstractCreature, CritData> lizardData = new ConditionalWeakTable<AbstractCreature, CritData>();
+        public static CritData GetData(this AbstractCreature self) => lizardData.GetValue(self, x => new CritData(x));
 
         // Custom methods
         public static int ColorToInt(Color color)
@@ -50,6 +50,14 @@ namespace LizardEggs
             return StaticWorld.GetCreatureTemplate(s);
         }
         public static CreatureTemplate CreatureTemplateFromType(CreatureTemplate.Type type) => CreatureTemplateFromType(type.value);
+        public static List<CreatureTemplate> lizTypes;
+        public static void InitLizTypes()
+        {
+            lizTypes = new List<CreatureTemplate>();
+            foreach (CreatureTemplate template in StaticWorld.creatureTemplates)
+                if (template.IsLizard)
+                    lizTypes.Add(template);
+        }
 
         public static void ChangeDictTuple<T, P>(Dictionary<T, (P, int)> dict, T key, int value)
         {

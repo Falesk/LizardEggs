@@ -173,11 +173,10 @@ namespace LizardEggs
             color = Color.Lerp(AbstractLizardEgg.color, palette.blackColor, darkness);
             if (rCam.room.PlayersInRoom != null && rCam.room.PlayersInRoom.Count > 0)
             {
-                try { color = Color.Lerp(color, PlayerGraphics.SlugcatColor(rCam.room.PlayersInRoom[0].slugcatStats?.name), 0.3f * AbstractLizardEgg.stage); }
+                try { color = Color.Lerp(color, PlayerGraphics.SlugcatColor(rCam.room.PlayersInRoom[0].slugcatStats?.name), 0.2f * AbstractLizardEgg.stage); }
                 catch { color = Color.Lerp(color, Color.white, 0.3f * AbstractLizardEgg.stage); }
             }
             sLeaser.sprites[2].color = new Color(color.r, Mathf.Clamp01(color.g * 1.1f), Mathf.Clamp01(color.b * 1.2f));
-            sLeaser.sprites[3].color = Color.Lerp(color, Color.white, 0.3f);
         }
 
         public void AddToContainer(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, FContainer newContatiner)
@@ -213,19 +212,18 @@ namespace LizardEggs
         {
             if (room == null)
                 return false;
-            AbstractCreature abstr;
-            try { abstr = new AbstractCreature(room.world, FCustom.CreatureTemplateFromType(AbstractLizardEgg.parentType), null, AbstractLizardEgg.pos, room.game.GetNewID(AbstractLizardEgg.parentID.spawner)); }
+            AbstractCreature abstrLizard;
+            try { abstrLizard = new AbstractCreature(room.world, FCustom.CreatureTemplateFromType(AbstractLizardEgg.parentType), null, AbstractLizardEgg.pos, room.game.GetNewID(AbstractLizardEgg.parentID.spawner)); }
             catch
             {
-                try { abstr = new AbstractCreature(room.world, StaticWorld.GetCreatureTemplate(AbstractLizardEgg.parentType), null, AbstractLizardEgg.pos, room.game.GetNewID(AbstractLizardEgg.parentID.spawner)); }
-                catch { abstr = new AbstractCreature(room.world, StaticWorld.GetCreatureTemplate(CreatureTemplate.Type.LizardTemplate), null, AbstractLizardEgg.pos, room.game.GetNewID()); }
+                try { abstrLizard = new AbstractCreature(room.world, StaticWorld.GetCreatureTemplate(AbstractLizardEgg.parentType), null, AbstractLizardEgg.pos, room.game.GetNewID(AbstractLizardEgg.parentID.spawner)); }
+                catch { abstrLizard = new AbstractCreature(room.world, FCustom.lizTypes[Random.Range(0, FCustom.lizTypes.Count)], null, AbstractLizardEgg.pos, room.game.GetNewID()); }
             }
-            room.abstractRoom.AddEntity(abstr);
-            if (abstr.GetData() is FCustom.Data data)
-                data.isChild = true;
-            abstr.RealizeInRoom();
-            Lizard liz = abstr.realizedCreature as Lizard;
-            liz.effectColor = AbstractLizardEgg.color;
+            room.abstractRoom.AddEntity(abstrLizard);
+            if (abstrLizard.GetData() is FCustom.CritData cData)
+                cData.isChild = true;
+            abstrLizard.RealizeInRoom();
+            Lizard liz = abstrLizard.realizedCreature as Lizard;
             liz.mainBodyChunk.HardSetPosition(room.MiddleOfTile(AbstractLizardEgg.pos.Tile));
             if (room.PlayersInRoom != null && room.PlayersInRoom.Count > 0)
             {
@@ -240,7 +238,7 @@ namespace LizardEggs
         }
 
         public int BitesLeft => bites;
-        public int FoodPoints => (AbstractLizardEgg.size > 1.24f) ? 2 : 1;
+        public int FoodPoints => 1 + (int)(AbstractLizardEgg.size / 1.24f);
         public bool Edible => true;
         public bool AutomaticPickUp => true;
         public float Luminance => Mathf.Sin(Mathf.Abs(lightIntensity) * Mathf.PI);
