@@ -14,7 +14,7 @@ namespace LizardEggs
     {
         public const string GUID = "falesk.lizardeggs";
         public const string Name = "Lizard Eggs";
-        public const string Version = "1.0.2";
+        public const string Version = "1.0.3";
         public void Awake()
         {
             // Registering / Unregistering
