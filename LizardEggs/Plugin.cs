@@ -1,5 +1,4 @@
 ﻿using BepInEx;
-using Menu;
 using MoreSlugcats;
 using RWCustom;
 using System;
@@ -65,25 +64,6 @@ namespace LizardEggs
                 EggsInDen = new Dictionary<WorldCoordinate, (AbstractCreature, int)>();
                 FCustom.InitLizTypes();
             };
-            On.Player.ProcessDebugInputs += delegate (On.Player.orig_ProcessDebugInputs orig, Player self)
-            {
-                orig(self);
-                if (self.input[0].y > 0 && !code[0]) Code(0);
-                if (self.input[0].y > 0 && code[0]) Code(1);
-                if (self.input[0].y < 0 && code[1]) Code(2);
-                if (self.input[0].y < 0 && code[2]) Code(3);
-                if (self.input[0].x < 0 && code[3]) Code(4);
-                if (self.input[0].x > 0 && code[4]) Code(5);
-                if (self.input[0].x < 0 && code[5]) Code(6);
-                if (self.input[0].x > 0 && code[6]) Code(7);
-                if (self.input[0].thrw && code[7]) Code(8);
-                if (self.input[0].pckp && code[8]) Code(9);
-                if (Input.GetKeyDown(KeyCode.Return) && code[9])
-                {
-                    code[9] = false;
-                    Debug.Log("olivkamega (RW fan) was right");
-                }
-            };
             On.WinState.CycleCompleted += delegate (On.WinState.orig_CycleCompleted orig, WinState self, RainWorldGame game)
             {
                 if (ModManager.MSC && eggInShelter && game.GetStorySession.playerSessionRecords[0].pupCountInDen == 0 && self.GetTracker(MoreSlugcatsEnums.EndgameID.Mother, eggInShelter) is WinState.FloatTracker tracker && tracker != null)
@@ -138,7 +118,11 @@ namespace LizardEggs
                 bool flag = false;
                 if (self.room != null && self.room.abstractRoom.shelter)
                     foreach (PhysicalObject obj in self.room.physicalObjects[1])
-                        if (obj is LizardEgg) flag = true;
+                        if (obj is LizardEgg)
+                        {
+                            flag = true;
+                            break;
+                        }
                 eggInShelter = flag;
             };
 
@@ -370,14 +354,6 @@ namespace LizardEggs
             }
         }
 
-        private static void Code(int ind)
-        {
-            for (int i = 0; i < 10; i++)
-            {
-                if (ind == i) code[i] = true;
-                else code[i] = false;
-            }
-        }
         public bool AddToEggsDict(World world, AbstractCreature abstr)
         {
             if (EggsInDen.ContainsKey(abstr.spawnDen) || !abstr.spawnDen.NodeDefined)
@@ -392,7 +368,6 @@ namespace LizardEggs
         }
 
         public static Dictionary<WorldCoordinate, (AbstractCreature, int)> EggsInDen { get; private set; }
-        private static bool[] code = new bool[10];
         public List<Indicator> indicators;
         public Room lastRoom;
         public bool eggInShelter;

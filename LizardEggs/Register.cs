@@ -31,7 +31,7 @@ namespace LizardEggs
             trLizOpport = options.config.Bind("trLizOpport", false, new ConfigurableInfo("If enabled, then with some chance a Train lizard can hatch from a Red lizard egg", tags: "Opportunity for a Train lizard to appear"));
             colorInheritance = options.config.Bind("colorInheritance", false, new ConfigurableInfo("Lizards inherit the color of their parent", tags: "Color inheritance"));
             youngLiz = options.config.Bind("youngLiz", true, new ConfigurableInfo("If enabled, young lizards spawn from the egg, otherwise adults", tags: "Young lizards spawn"));
-            baseChance = options.config.Bind("baseChance", 0.333f, new ConfigurableInfo("Base spawn chance, affects only the Survivor and custom slugcats", new ConfigAcceptableRange<float>(0f, 1f), tags: "Base spawn chance"));
+            baseChance = options.config.Bind("baseChance", 0.33f, new ConfigurableInfo("Base spawn chance, affects only the Survivor and custom slugcats", new ConfigAcceptableRange<float>(0f, 1f), tags: "Base spawn chance"));
             occurrenceFrequency = options.config.Bind("occurrenceFrequency", 1f, new ConfigurableInfo("Changes the egg appearance multiplier for all slugcats", new ConfigAcceptableRange<float>(0f, 5f), tags: "Occurrence frequency multiplier"));
             glowBrightness = options.config.Bind("glowBrightness", 1f, new ConfigurableInfo("Changes the brightness of the egg glow", new ConfigAcceptableRange<float>(0f, 1f), tags: "Glow brightness"));
             indBrightness = options.config.Bind("indBrightness", 1f, new ConfigurableInfo("Changes the brightness of the indicator glow", new ConfigAcceptableRange<float>(0f, 1f), tags: "Indicator brightness"));

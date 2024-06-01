@@ -1,6 +1,5 @@
 ﻿using Menu.Remix.MixedUI;
 using Menu.Remix;
-using System;
 using UnityEngine;
 
 namespace LizardEggs
@@ -10,36 +9,34 @@ namespace LizardEggs
         public override void Initialize()
         {
             base.Initialize();
-            if (integerConfig == null)
+            if (intConfig == null)
                 ArrayConfig();
             Tabs = new OpTab[] { new OpTab(this) };
-            PlaceInterface(new Vector2(70f, 550f), integerConfig);
-            PlaceInterface(new Vector2(70f, 360f), boolConfig);
-            PlaceInterface(new Vector2(350f, 550f), floatConfig);
+            PlaceConfigBlock(new Vector2(70f, 550f), intConfig);
+            PlaceConfigBlock(new Vector2(70f, 350f), boolConfig);
+            PlaceConfigBlock(new Vector2(350f, 550f), floatConfig);
         }
 
         public override string ValidationString()
         {
-            if (integerConfig == null)
+            if (intConfig == null)
                 ArrayConfig();
             string text = $"[{Plugin.GUID} v{Plugin.Version}] ";
-            foreach (Configurable<int> intConf in integerConfig)
+            foreach (Configurable<int> intConf in intConfig)
                 text += $"{intConf.Value} ";
             foreach (Configurable<bool> boolConf in boolConfig)
                 text += boolConf.Value ? "T " : "F ";
             foreach (Configurable<float> floatConf in floatConfig)
-                text += $"{Math.Round((double)floatConf.Value, 2)} ";
+                text += $"{floatConf.Value} ";
             return text;
         }
 
-        public void PlaceInterface(Vector2 pos, ConfigurableBase[] config)
+        public void PlaceConfigBlock(Vector2 pos, ConfigurableBase[] config)
         {
-            if (integerConfig == null)
-                ArrayConfig();
             string header = "";
             for (int i = 0; i < config.Length; i++)
             {
-                Vector2 v = new Vector2(pos.x, pos.y - 40f - 40f * i);
+                Vector2 v = new Vector2(pos.x, pos.y - (40f * (i + 1)));
                 float x = 0f;
                 UIconfig UIconf = null;
                 switch (ValueConverter.GetTypeCategory(config[i].settingType))
@@ -56,6 +53,7 @@ namespace LizardEggs
                             header = "Check boxes";
                         UIconf = new OpCheckBox(config[i] as Configurable<bool>, new Vector2(v.x - 45f, v.y))
                         { description = (config[i] as Configurable<bool>).info.description };
+                        x = -5f;
                         break;
                     case ValueConverter.TypeCategory.Floats:
                         if (i == 0)
@@ -76,7 +74,7 @@ namespace LizardEggs
 
         public void ArrayConfig()
         {
-            integerConfig = new Configurable<int>[]
+            intConfig = new Configurable<int>[]
             {
                 Register.eggGrowthTime,
                 Register.lizGrowthTime
@@ -96,7 +94,7 @@ namespace LizardEggs
             };
         }
 
-        private Configurable<int>[] integerConfig;
+        private Configurable<int>[] intConfig;
         private Configurable<bool>[] boolConfig;
         private Configurable<float>[] floatConfig;
     }

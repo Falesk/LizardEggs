@@ -110,11 +110,11 @@ namespace LizardEggs
         public void InitiateSprites(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam)
         {
             sLeaser.sprites = new FSprite[4];
-            sLeaser.sprites[0] = new FSprite("SnailShellA");
-            sLeaser.sprites[0].scale = 0.6f * AbstractLizardEgg.size * (1f + 0.2f * AbstractLizardEgg.stage);
+            sLeaser.sprites[0] = new FSprite("SnailShellA")
+            { scale = 0.6f * AbstractLizardEgg.size * (1f + 0.2f * AbstractLizardEgg.stage) };
 
-            sLeaser.sprites[1] = new FSprite("SnailShellB");
-            sLeaser.sprites[1].scale = 0.6f * AbstractLizardEgg.size * (1f + 0.2f * AbstractLizardEgg.stage);
+            sLeaser.sprites[1] = new FSprite("SnailShellB")
+            { scale = 0.6f * AbstractLizardEgg.size * (1f + 0.2f * AbstractLizardEgg.stage) };
 
             sLeaser.sprites[2] = new FSprite("Futile_White")
             {
