@@ -83,8 +83,9 @@ namespace LizardEggs
             {
                 if (ModManager.MSC && eggInShelter && game.GetStorySession.playerSessionRecords[0].pupCountInDen == 0 && self.GetTracker(MoreSlugcatsEnums.EndgameID.Mother, eggInShelter) is WinState.FloatTracker tracker && tracker != null)
                 {
-                    tracker.SetProgress(eggMotherProgress + 0.167f);
                     eggMotherProgress = tracker.progress;
+                    tracker.SetProgress(eggMotherProgress + 0.167f);
+                    eggMotherProgress += 0.167f;
                 }
                 else eggMotherProgress = 0f;
                 orig(self, game);
@@ -149,8 +150,7 @@ namespace LizardEggs
             };
             On.LizardAI.Update += delegate (On.LizardAI.orig_Update orig, LizardAI self)
             {
-                if (self.behavior == LizardAI.Behavior.Flee && !RainWorldGame.RequestHeavyAi(self.lizard))
-                    return;
+                orig(self);
                 if (self.creature.GetData() is FCustom.CritData data && data.egg != null)
                 {
                     if (self.pathFinder.CoordinateReachableAndGetbackable(data.egg.pos))
@@ -158,9 +158,8 @@ namespace LizardEggs
                         self.creature.abstractAI.SetDestination(data.egg.pos);
                         self.runSpeed = math.lerp(self.runSpeed, 1f, 0.75f);
                     }
-                    else self.behavior = LizardAI.Behavior.Frustrated;
+                    else self.behavior = LizardAI.Behavior.Idle;
                 }
-                orig(self);
             };
             On.Lizard.CarryObject += delegate (On.Lizard.orig_CarryObject orig, Lizard self, bool eu)
             {
@@ -230,7 +229,7 @@ namespace LizardEggs
                 return;
             foreach (PhysicalObject obj in self.room.physicalObjects[1])
             {
-                if (self.abstractCreature.GetData() is FCustom.CritData data)
+                if (self.abstractCreature.GetData() is FCustom.CritData data && !(self.AI.friendTracker.friend is Player))
                 {
                     if (!data.sawPlayerWithEgg && obj is Player player && self.AI.VisualContact(player.mainBodyChunk) && player.grasps[0] != null && player.grasps[0].grabbed is LizardEgg && (player.grasps[0].grabbed as LizardEgg).AbstractLizardEgg.parentID == self.abstractCreature.ID)
                     {
@@ -244,7 +243,6 @@ namespace LizardEggs
                             self.animation = Lizard.Animation.HearSound;
                             self.timeToRemainInAnimation = 40;
                             self.bubbleIntensity = 0.3f;
-                            break;
                         }
                     }
                     if (obj is LizardEgg egg && egg.AbstractLizardEgg.parentID == self.abstractCreature.ID)
@@ -319,7 +317,7 @@ namespace LizardEggs
                 {
                     if (int.Parse(array[6]) == 4)
                         return null;
-                    int stage = (world.rainCycle.timer < 40) ? int.Parse(array[6]) + 1 : int.Parse(array[6]);
+                    int stage = (world.rainCycle.timer < 40 && world.GetAbstractRoom(WorldCoordinate.FromString(array[2])).shelter) ? int.Parse(array[6]) + 1 : int.Parse(array[6]);
                     AbstractPhysicalObject abstrEgg = new AbstractLizardEgg(world, WorldCoordinate.FromString(array[2]), EntityID.FromString(array[0]), EntityID.FromString(array[5]), float.Parse(array[4]), FCustom.IntToColor(int.Parse(array[3])), array[7], stage, true)
                     { unrecognizedAttributes = SaveUtils.PopulateUnrecognizedStringAttrs(array, 8) };
                     return abstrEgg;

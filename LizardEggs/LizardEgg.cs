@@ -90,15 +90,8 @@ namespace LizardEggs
                 room.AddObject(light);
             }
 
-            if (AbstractLizardEgg.stage > 2 && !lizAppear)
-            {
-                try
-                {
-                    if (SpawnLizard())
-                        lizAppear = true;
-                }
-                catch { }
-            }
+            if (AbstractLizardEgg.stage > 2 && !lizAppear && SpawnLizard())
+                lizAppear = true;
             if (lizAppear)
             {
                 try { Destroy(); }
@@ -219,10 +212,14 @@ namespace LizardEggs
                 try { abstrLizard = new AbstractCreature(room.world, StaticWorld.GetCreatureTemplate(AbstractLizardEgg.parentType), null, AbstractLizardEgg.pos, room.game.GetNewID(AbstractLizardEgg.parentID.spawner)); }
                 catch { abstrLizard = new AbstractCreature(room.world, FCustom.lizTypes[Random.Range(0, FCustom.lizTypes.Count)], null, AbstractLizardEgg.pos, room.game.GetNewID()); }
             }
-            room.abstractRoom.AddEntity(abstrLizard);
-            if (abstrLizard.GetData() is FCustom.CritData cData)
-                cData.isChild = true;
-            abstrLizard.RealizeInRoom();
+            try
+            {
+                room.abstractRoom.AddEntity(abstrLizard);
+                if (abstrLizard.GetData() is FCustom.CritData cData)
+                    cData.isChild = true;
+                abstrLizard.RealizeInRoom();
+            }
+            catch { return false; }
             Lizard liz = abstrLizard.realizedCreature as Lizard;
             liz.mainBodyChunk.HardSetPosition(room.MiddleOfTile(AbstractLizardEgg.pos.Tile));
             if (room.PlayersInRoom != null && room.PlayersInRoom.Count > 0)
