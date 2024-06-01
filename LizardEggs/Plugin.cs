@@ -17,8 +17,13 @@ namespace LizardEggs
         public const string Version = "1.0.3";
         public void Awake()
         {
-            // Registering / Unregistering
-            Register.RegisterValues();
+            // Mod Init / Deinit
+            On.RainWorld.OnModsInit += delegate (On.RainWorld.orig_OnModsInit orig, RainWorld self)
+            {
+                orig(self);
+                Register.RegisterValues();
+                Register.InitConfig();
+            };
             On.RainWorld.OnModsDisabled += delegate (On.RainWorld.orig_OnModsDisabled orig, RainWorld self, ModManager.Mod[] newlyDisabledMods)
             {
                 orig(self, newlyDisabledMods);
