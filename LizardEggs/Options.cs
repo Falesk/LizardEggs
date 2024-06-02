@@ -13,8 +13,8 @@ namespace LizardEggs
                 ArrayConfig();
             Tabs = new OpTab[] { new OpTab(this) };
             PlaceConfigBlock(new Vector2(70f, 550f), intConfig);
-            PlaceConfigBlock(new Vector2(70f, 350f), boolConfig);
-            PlaceConfigBlock(new Vector2(350f, 550f), floatConfig);
+            PlaceConfigBlock(new Vector2(70f, 350f), floatConfig);
+            PlaceConfigBlock(new Vector2(350f, 550f), boolConfig);
         }
 
         public override string ValidationString()
@@ -25,10 +25,11 @@ namespace LizardEggs
             foreach (Configurable<int> intConf in intConfig)
                 text += $"{intConf.Value} ";
             foreach (Configurable<bool> boolConf in boolConfig)
-                text += boolConf.Value ? "T " : "F ";
+                text += boolConf.Value ? "T" : "F";
+            text += " ";
             foreach (Configurable<float> floatConf in floatConfig)
                 text += $"{floatConf.Value} ";
-            return text;
+            return text.TrimEnd();
         }
 
         public void PlaceConfigBlock(Vector2 pos, ConfigurableBase[] config)
@@ -44,32 +45,32 @@ namespace LizardEggs
                     case ValueConverter.TypeCategory.Integrals:
                         if (i == 0)
                             header = "Growth";
-                        UIconf = new OpUpdown(config[i] as Configurable<int>, new Vector2(v.x - 25f, v.y - 5f), 60f)
-                        { description = (config[i] as Configurable<int>).info.description };
-                        x = 50f;
+                        UIconf = new OpUpdown(config[i] as Configurable<int>, new Vector2(v.x - 25f, v.y - 5f), 70f)
+                        { description = Translate((config[i] as Configurable<int>).info.description) };
+                        x = 60f;
                         break;
                     case ValueConverter.TypeCategory.Boolean:
                         if (i == 0)
                             header = "Check boxes";
                         UIconf = new OpCheckBox(config[i] as Configurable<bool>, new Vector2(v.x - 45f, v.y))
-                        { description = (config[i] as Configurable<bool>).info.description };
+                        { description = Translate((config[i] as Configurable<bool>).info.description) };
                         x = -5f;
                         break;
                     case ValueConverter.TypeCategory.Floats:
                         if (i == 0)
-                            header = "Custom";
-                        UIconf = new OpUpdown(config[i] as Configurable<float>, new Vector2(v.x - 25f, v.y - 5f), 60f, 2)
-                        { description = (config[i] as Configurable<float>).info.description };
-                        x = 50f;
+                            header = "Custom settings";
+                        UIconf = new OpUpdown(config[i] as Configurable<float>, new Vector2(v.x - 25f, v.y - 5f), 70f, 2)
+                        { description = Translate((config[i] as Configurable<float>).info.description) };
+                        x = 60f;
                         break;
                 }
                 Tabs[0].AddItems(new UIelement[]
                 {
                     UIconf,
-                    new OpLabel(new Vector2(v.x + x, v.y), Vector2.zero, config[i].info.Tags[0] as string, FLabelAlignment.Left)
+                    new OpLabel(new Vector2(v.x + x, v.y), Vector2.zero, Translate(config[i].info.Tags[0] as string), FLabelAlignment.Left)
                 });
             }
-            Tabs[0]._AddItem(new OpLabel(pos, Vector2.zero, header, bigText: true));
+            Tabs[0]._AddItem(new OpLabel(pos, Vector2.zero, Translate(header), bigText: true));
         }
 
         public void ArrayConfig()
@@ -83,6 +84,7 @@ namespace LizardEggs
             {
                 Register.trLizOpport,
                 Register.colorInheritance,
+                Register.tamedAggressiveness,
                 Register.youngLiz
             };
             floatConfig = new Configurable<float>[]
@@ -90,7 +92,8 @@ namespace LizardEggs
                 Register.baseChance,
                 Register.occurrenceFrequency,
                 Register.glowBrightness,
-                Register.indBrightness
+                Register.indBrightness,
+                Register.lizAggressiveness
             };
         }
 

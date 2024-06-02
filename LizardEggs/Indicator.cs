@@ -20,13 +20,15 @@ namespace LizardEggs
             {
                 scale = 1.75f,
                 shader = rCam.room.game.rainWorld.Shaders["FlatLight"],
-                color = Color.Lerp(color, Color.white, 0.4f)
+                color = Color.Lerp(color, Color.white, 0.4f),
+                alpha = Register.indBrightness.Value
             };
             sLeaser.sprites[1] = new FSprite("Futile_White")
             {
                 scale = 3.5f,
                 shader = rCam.room.game.rainWorld.Shaders["LightSource"],
-                color = color
+                color = color,
+                alpha = Register.indBrightness.Value
             };
             AddToContainer(sLeaser, rCam, null);
         }

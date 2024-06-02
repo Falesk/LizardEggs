@@ -29,12 +29,14 @@ namespace LizardEggs
             eggGrowthTime = options.config.Bind("eggGrowthTime", 3, new ConfigurableInfo("Changes the amount of cycles required to hatch an egg", new ConfigAcceptableRange<int>(1, 99), tags: "Cycles to hatch"));
             lizGrowthTime = options.config.Bind("lizGrowthTime", 1, new ConfigurableInfo("Changes the amount of cycles required for the cub to grow up", new ConfigAcceptableRange<int>(1, 99), tags: "Cycles to grow up"));
             trLizOpport = options.config.Bind("trLizOpport", false, new ConfigurableInfo("If enabled, then with some chance a Train lizard can hatch from a Red lizard egg", tags: "Opportunity for a Train lizard to appear"));
-            colorInheritance = options.config.Bind("colorInheritance", false, new ConfigurableInfo("Lizards inherit the color of their parent", tags: "Color inheritance"));
+            colorInheritance = options.config.Bind("colorInheritance", false, new ConfigurableInfo("If enabled, lizards inherit the color of their parent", tags: "Color inheritance"));
+            tamedAggressiveness = options.config.Bind("tamedAggressiveness", false, new ConfigurableInfo("If enabled, tamed lizards will attack you if you steal their egg", tags: "Aggressiveness of the tamed"));
             youngLiz = options.config.Bind("youngLiz", true, new ConfigurableInfo("If enabled, young lizards spawn from the egg, otherwise adults", tags: "Young lizards spawn"));
             baseChance = options.config.Bind("baseChance", 0.33f, new ConfigurableInfo("Base spawn chance, affects only the Survivor and custom slugcats", new ConfigAcceptableRange<float>(0f, 1f), tags: "Base spawn chance"));
-            occurrenceFrequency = options.config.Bind("occurrenceFrequency", 1f, new ConfigurableInfo("Changes the egg appearance multiplier for all slugcats", new ConfigAcceptableRange<float>(0f, 5f), tags: "Occurrence frequency multiplier"));
+            occurrenceFrequency = options.config.Bind("occurrenceFrequency", 1f, new ConfigurableInfo("Changes the egg appearance multiplier for all slugcats", new ConfigAcceptableRange<float>(0f, 10f), tags: "Occurrence frequency multiplier"));
             glowBrightness = options.config.Bind("glowBrightness", 1f, new ConfigurableInfo("Changes the brightness of the egg glow", new ConfigAcceptableRange<float>(0f, 1f), tags: "Glow brightness"));
             indBrightness = options.config.Bind("indBrightness", 1f, new ConfigurableInfo("Changes the brightness of the indicator glow", new ConfigAcceptableRange<float>(0f, 1f), tags: "Indicator brightness"));
+            lizAggressiveness = options.config.Bind("lizAggressiveness", 1f, new ConfigurableInfo("It affects how much the reputation of the lizards decreases if lizard sees its egg in the hands of the player", new ConfigAcceptableRange<float>(0f, 1f), tags: "Lizard aggressiveness"));
         }
 
         public static AbstractPhysicalObject.AbstractObjectType LizardEgg;
@@ -45,9 +47,11 @@ namespace LizardEggs
         public static Configurable<bool> trLizOpport;
         public static Configurable<bool> colorInheritance;
         public static Configurable<bool> youngLiz;
+        public static Configurable<bool> tamedAggressiveness;
         public static Configurable<float> baseChance;
         public static Configurable<float> occurrenceFrequency;
         public static Configurable<float> glowBrightness;
         public static Configurable<float> indBrightness;
+        public static Configurable<float> lizAggressiveness;
     }
 }

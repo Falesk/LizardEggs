@@ -40,14 +40,10 @@ namespace LizardEggs
 
         public static CreatureTemplate CreatureTemplateFromType(string str)
         {
-            string s = str[0].ToString();
-            for (int i = 1; i < str.Length; i++)
-            {
-                if (char.IsUpper(str[i]))
-                    s += " ";
-                s += str[i].ToString();
-            }
-            return StaticWorld.GetCreatureTemplate(s);
+            foreach (CreatureTemplate temp in StaticWorld.creatureTemplates)
+                if (temp.type.value == str)
+                    return temp;
+            return lizTypes[Random.Range(0, lizTypes.Count)];
         }
         public static CreatureTemplate CreatureTemplateFromType(CreatureTemplate.Type type) => CreatureTemplateFromType(type.value);
         public static List<CreatureTemplate> lizTypes;
@@ -87,7 +83,7 @@ namespace LizardEggs
                 if (name == MoreSlugcatsEnums.SlugcatStatsName.Sofanthiel)
                     return 1f;
             }
-            return 0.333f;
+            return Register.baseChance.Value;
         }
     }
 }
