@@ -21,14 +21,7 @@ namespace LizardEggs
         public static CritData GetData(this AbstractCreature self) => lizardData.GetValue(self, x => new CritData(x));
 
         // Custom methods
-        public static int ColorToInt(Color color)
-        {
-            int val = 0;
-            val += (int)(color.r * 100) * 1000000;
-            val += (int)(color.g * 100) * 1000;
-            val += (int)(color.b * 100);
-            return val;
-        }
+        public static int ColorToInt(Color color) => (int)(color.r * 100) * 1000000 + (int)(color.g * 100) * 1000 + (int)(color.b * 100);
 
         public static Color IntToColor(int val)
         {
@@ -38,20 +31,12 @@ namespace LizardEggs
             return new Color((float)r / 100, (float)g / 100, (float)b / 100);
         }
 
-        public static CreatureTemplate CreatureTemplateFromType(string str)
-        {
-            foreach (CreatureTemplate temp in StaticWorld.creatureTemplates)
-                if (temp.type.value == str)
-                    return temp;
-            return lizTypes[Random.Range(0, lizTypes.Count)];
-        }
-        public static CreatureTemplate CreatureTemplateFromType(CreatureTemplate.Type type) => CreatureTemplateFromType(type.value);
         public static List<CreatureTemplate> lizTypes;
         public static void InitLizTypes()
         {
             lizTypes = new List<CreatureTemplate>();
             foreach (CreatureTemplate template in StaticWorld.creatureTemplates)
-                if (template.IsLizard)
+                if (template.IsLizard && template.name != "YoungLizard")
                     lizTypes.Add(template);
         }
 

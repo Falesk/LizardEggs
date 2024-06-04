@@ -87,7 +87,7 @@ namespace LizardEggs
             }
             else
             {
-                light = new LightSource(firstChunk.pos, false, color, this);
+                light = new LightSource(firstChunk.pos, false, Color.Lerp(AbstractLizardEgg.color, Color.white, 0.3f), this);
                 room.AddObject(light);
             }
 
@@ -175,8 +175,7 @@ namespace LizardEggs
 
         public void AddToContainer(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, FContainer newContatiner)
         {
-            if (newContatiner == null)
-                newContatiner = rCam.ReturnFContainer("Items");
+            newContatiner = newContatiner ?? rCam.ReturnFContainer("Items");
             foreach (FSprite sprite in sLeaser.sprites)
                 sprite.RemoveFromContainer();
             newContatiner.AddChild(sLeaser.sprites[0]);
@@ -207,9 +206,11 @@ namespace LizardEggs
             if (room == null)
                 return false;
             AbstractCreature abstrLizard;
-            if (ModManager.MSC && Register.trLizOpport.Value && AbstractLizardEgg.parentType == "RedLizard" && Random.value < 0.1f)
+            if (ModManager.MSC && Register.trLizOpport.Value && AbstractLizardEgg.parentType == "Red Lizard" && Random.value < 0.1f)
                 abstrLizard = new AbstractCreature(room.world, StaticWorld.GetCreatureTemplate(MoreSlugcatsEnums.CreatureTemplateType.TrainLizard), null, AbstractLizardEgg.pos, room.game.GetNewID(AbstractLizardEgg.parentID.spawner));
-            else abstrLizard = new AbstractCreature(room.world, FCustom.CreatureTemplateFromType(AbstractLizardEgg.parentType), null, AbstractLizardEgg.pos, room.game.GetNewID(AbstractLizardEgg.parentID.spawner));
+            else if (AbstractLizardEgg.parentType != "")
+                abstrLizard = new AbstractCreature(room.world, StaticWorld.GetCreatureTemplate(AbstractLizardEgg.parentType), null, AbstractLizardEgg.pos, room.game.GetNewID(AbstractLizardEgg.parentID.spawner));
+            else abstrLizard = new AbstractCreature(room.world, FCustom.lizTypes[Random.Range(0, FCustom.lizTypes.Count)], null, AbstractLizardEgg.pos, room.game.GetNewID());
             if (!Plugin.smlLizards.ContainsKey(abstrLizard.ID))
                 Plugin.smlLizards.Add(abstrLizard.ID, 0);
             try
@@ -224,7 +225,7 @@ namespace LizardEggs
             liz.mainBodyChunk.HardSetPosition(room.MiddleOfTile(AbstractLizardEgg.pos.Tile));
             if (Register.colorInheritance.Value)
                 liz.effectColor = AbstractLizardEgg.color;
-            if (room.PlayersInRoom != null && room.PlayersInRoom.Count > 0)
+            if (room.PlayersInRoom?.Count > 0)
             {
                 Player player = room.PlayersInRoom[0];
                 liz.AI.friendTracker.friend = player;

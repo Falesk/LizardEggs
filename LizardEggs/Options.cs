@@ -34,7 +34,7 @@ namespace LizardEggs
 
         public void PlaceConfigBlock(Vector2 pos, ConfigurableBase[] config)
         {
-            string header = "";
+            string header = string.Empty;
             for (int i = 0; i < config.Length; i++)
             {
                 Vector2 v = new Vector2(pos.x, pos.y - (40f * (i + 1)));

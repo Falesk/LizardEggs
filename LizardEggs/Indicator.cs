@@ -45,8 +45,7 @@ namespace LizardEggs
 
         public override void AddToContainer(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, FContainer newContatiner)
         {
-            if (newContatiner == null)
-                newContatiner = rCam.ReturnFContainer("Bloom");
+            newContatiner = newContatiner ?? rCam.ReturnFContainer("Bloom");
             foreach (FSprite sprite in sLeaser.sprites)
             {
                 sprite.RemoveFromContainer();
