@@ -13,7 +13,7 @@ namespace LizardEggs
     {
         public const string GUID = "falesk.lizardeggs";
         public const string Name = "Lizard Eggs";
-        public const string Version = "1.1.1";
+        public const string Version = "1.1.2";
         public void Awake()
         {
             // Mod Init / Deinit
@@ -157,7 +157,7 @@ namespace LizardEggs
             On.LizardAI.Update += delegate (On.LizardAI.orig_Update orig, LizardAI self)
             {
                 orig(self);
-                if (self.creature.GetData() is FCustom.CritData data && data.egg != null)
+                if (self.creature.GetData() is FCustom.CritData data && data.egg != null && self.behavior != LizardAI.Behavior.ReturnPrey)
                 {
                     if (self.pathFinder.CoordinateReachableAndGetbackable(data.egg.pos))
                     {

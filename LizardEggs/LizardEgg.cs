@@ -167,8 +167,8 @@ namespace LizardEggs
             color = Color.Lerp(AbstractLizardEgg.color, palette.blackColor, darkness);
             if (rCam.room.PlayersInRoom != null && rCam.room.PlayersInRoom.Count > 0)
             {
-                try { color = Color.Lerp(color, PlayerGraphics.SlugcatColor(rCam.room.PlayersInRoom[0].slugcatStats?.name), 0.6f * AbsStage); }
-                catch { color = Color.Lerp(color, Color.white, 0.6f * AbsStage); }
+                try { color = Color.Lerp(color, PlayerGraphics.SlugcatColor(rCam.room.PlayersInRoom[0].slugcatStats?.name), 0.4f * AbsStage); }
+                catch { color = Color.Lerp(color, Color.white, 0.3f * AbsStage); }
             }
             sLeaser.sprites[2].color = new Color(color.r, Mathf.Clamp01(color.g * 1.1f), Mathf.Clamp01(color.b * 1.2f));
         }
