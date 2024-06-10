@@ -47,6 +47,14 @@ namespace LizardEggs
             dict[key] = a;
         }
 
+        public static int GetAbstractNode(WorldCoordinate wc, Room room)
+        {
+            for (int i = 0; i < room.abstractRoom.TotalNodes; i++)
+                if (wc.CompareDisregardingNode(room.LocalCoordinateOfNode(i)))
+                    return i;
+            return -1;
+        }
+
         public static float EggSpawnChance(SlugcatStats.Name name)
         {
             if (name == SlugcatStats.Name.Red)

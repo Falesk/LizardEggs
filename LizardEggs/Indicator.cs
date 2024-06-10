@@ -9,8 +9,15 @@ namespace LizardEggs
             this.den = den;
             this.room = room;
             pos = room.MiddleOfTile(room.LocalCoordinateOfNode(den.abstractNode).Tile);
-            lizard = (Plugin.EggsInDen[den].Item1?.realizedCreature as Lizard) ?? new Lizard(Plugin.EggsInDen[den].Item1, room.world);
+            lizard = Plugin.EggsInDen[den].Item1?.realizedCreature as Lizard ?? new Lizard(Plugin.EggsInDen[den].Item1, room.world);
             color = lizard.effectColor;
+        }
+
+        public override void Update(bool eu)
+        {
+            base.Update(eu);
+            if (!room.BeingViewed)
+                Destroy();
         }
 
         public override void InitiateSprites(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam)

@@ -87,17 +87,12 @@ namespace LizardEggs
             }
             else
             {
-                light = new LightSource(firstChunk.pos, false, Color.Lerp(AbstractLizardEgg.color, Color.white, 0.3f), this);
+                light = new LightSource(firstChunk.pos, false, Color.Lerp(AbstractLizardEgg.color, Color.white, 0.1f), this);
                 room.AddObject(light);
             }
 
-            if (AbstractLizardEgg.stage >= Register.eggGrowthTime.Value && !lizAppear && SpawnLizard())
-                lizAppear = true;
-            if (lizAppear)
-            {
-                try { Destroy(); }
-                catch { }
-            }
+            if (AbstractLizardEgg.stage >= Register.eggGrowthTime.Value && SpawnLizard())
+                Destroy();
         }
 
         public override void PlaceInRoom(Room placeRoom)
@@ -110,7 +105,7 @@ namespace LizardEggs
 
         public void InitiateSprites(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam)
         {
-            sLeaser.sprites = new FSprite[4];
+            sLeaser.sprites = new FSprite[3];
             sLeaser.sprites[0] = new FSprite("SnailShellA")
             { scale = 0.6f * AbstractLizardEgg.size * (1f + 0.6f * AbsStage) };
 
@@ -118,12 +113,6 @@ namespace LizardEggs
             { scale = 0.6f * AbstractLizardEgg.size * (1f + 0.6f * AbsStage) };
 
             sLeaser.sprites[2] = new FSprite("Futile_White")
-            {
-                shader = rCam.game.rainWorld.Shaders["FlatLightBehindTerrain"],
-                scale = AbstractLizardEgg.size * (1f + 0.3f * AbsStage)
-            };
-
-            sLeaser.sprites[3] = new FSprite("Futile_White")
             {
                 shader = rCam.game.rainWorld.Shaders["LightSource"],
                 scale = AbstractLizardEgg.size * 3.5f * (1f + 0.6f * AbsStage)
@@ -150,9 +139,6 @@ namespace LizardEggs
                 sLeaser.sprites[2].x = vector.x - camPos.x - v.x * 3f;
                 sLeaser.sprites[2].y = vector.y - camPos.y - v.y * 3f;
                 sLeaser.sprites[2].alpha = Luminance * Register.glowBrightness.Value;
-                sLeaser.sprites[3].x = vector.x - camPos.x - v.x * 3f;
-                sLeaser.sprites[3].y = vector.y - camPos.y - v.y * 3f;
-                sLeaser.sprites[3].alpha = Luminance * Register.glowBrightness.Value;
             }
             if (blink > 0 && Random.value < 0.5f)
                 sLeaser.sprites[1].color = blinkColor;
@@ -165,12 +151,12 @@ namespace LizardEggs
         {
             sLeaser.sprites[0].color = palette.blackColor;
             color = Color.Lerp(AbstractLizardEgg.color, palette.blackColor, darkness);
-            if (rCam.room.PlayersInRoom != null && rCam.room.PlayersInRoom.Count > 0)
+            if (rCam.room.PlayersInRoom?.Count > 0)
             {
                 try { color = Color.Lerp(color, PlayerGraphics.SlugcatColor(rCam.room.PlayersInRoom[0].slugcatStats?.name), 0.4f * AbsStage); }
                 catch { color = Color.Lerp(color, Color.white, 0.3f * AbsStage); }
             }
-            sLeaser.sprites[2].color = new Color(color.r, Mathf.Clamp01(color.g * 1.1f), Mathf.Clamp01(color.b * 1.2f));
+            sLeaser.sprites[2].color = color;
         }
 
         public void AddToContainer(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, FContainer newContatiner)
@@ -181,7 +167,6 @@ namespace LizardEggs
             newContatiner.AddChild(sLeaser.sprites[0]);
             newContatiner.AddChild(sLeaser.sprites[1]);
             rCam.ReturnFContainer("GrabShaders").AddChild(sLeaser.sprites[2]);
-            rCam.ReturnFContainer("Water").AddChild(sLeaser.sprites[3]);
         }
 
         public void BitByPlayer(Creature.Grasp grasp, bool eu)
@@ -205,14 +190,20 @@ namespace LizardEggs
         {
             if (room == null)
                 return false;
+            if (FCustom.lizTypes == null)
+                FCustom.InitLizTypes();
             AbstractCreature abstrLizard;
-            if (ModManager.MSC && Register.trLizOpport.Value && AbstractLizardEgg.parentType == "Red Lizard" && Random.value < 0.1f)
-                abstrLizard = new AbstractCreature(room.world, StaticWorld.GetCreatureTemplate(MoreSlugcatsEnums.CreatureTemplateType.TrainLizard), null, AbstractLizardEgg.pos, room.game.GetNewID(AbstractLizardEgg.parentID.spawner));
-            else if (AbstractLizardEgg.parentType != "")
-                abstrLizard = new AbstractCreature(room.world, StaticWorld.GetCreatureTemplate(AbstractLizardEgg.parentType), null, AbstractLizardEgg.pos, room.game.GetNewID(AbstractLizardEgg.parentID.spawner));
-            else abstrLizard = new AbstractCreature(room.world, FCustom.lizTypes[Random.Range(0, FCustom.lizTypes.Count)], null, AbstractLizardEgg.pos, room.game.GetNewID());
-            if (!Plugin.smlLizards.ContainsKey(abstrLizard.ID))
-                Plugin.smlLizards.Add(abstrLizard.ID, 0);
+            try
+            {
+                if (ModManager.MSC && Register.trLizOpport.Value && AbstractLizardEgg.parentType == "Red Lizard" && Random.value < 0.1f)
+                    abstrLizard = new AbstractCreature(room.world, StaticWorld.GetCreatureTemplate(MoreSlugcatsEnums.CreatureTemplateType.TrainLizard), null, AbstractLizardEgg.pos, room.game.GetNewID(AbstractLizardEgg.parentID.spawner));
+                else if (AbstractLizardEgg.parentType != "")
+                    abstrLizard = new AbstractCreature(room.world, StaticWorld.GetCreatureTemplate(AbstractLizardEgg.parentType), null, AbstractLizardEgg.pos, room.game.GetNewID(AbstractLizardEgg.parentID.spawner));
+                else abstrLizard = new AbstractCreature(room.world, FCustom.lizTypes[Random.Range(0, FCustom.lizTypes.Count)], null, AbstractLizardEgg.pos, room.game.GetNewID());
+                if (!Plugin.smlLizards.ContainsKey(abstrLizard.ID))
+                    Plugin.smlLizards.Add(abstrLizard.ID, 0);
+            }
+            catch { return false; }
             try
             {
                 room.abstractRoom.AddEntity(abstrLizard);
@@ -230,9 +221,6 @@ namespace LizardEggs
                 Player player = room.PlayersInRoom[0];
                 liz.AI.friendTracker.friend = player;
                 liz.AI.LizardPlayerRelationChange(1f, player.abstractCreature);
-                SocialMemory.Relationship relationship = liz.abstractCreature.state.socialMemory.GetOrInitiateRelationship(player.abstractCreature.ID);
-                relationship.InfluenceLike(1f);
-                relationship.InfluenceKnow(0f);
             }
             return true;
         }
@@ -242,7 +230,7 @@ namespace LizardEggs
         public bool Edible => true;
         public bool AutomaticPickUp => true;
         public float Luminance => Mathf.Sin(Mathf.Abs(lightIntensity) * Mathf.PI);
-        public float AbsStage => (float)AbstractLizardEgg.stage / Register.eggGrowthTime.Value;
+        public float AbsStage => Mathf.Clamp01((float)AbstractLizardEgg.stage / Register.eggGrowthTime.Value);
         public Vector2 rotation;
         public Vector2 lastRotation;
         public Vector2? setRotation;
