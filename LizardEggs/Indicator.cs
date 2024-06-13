@@ -22,30 +22,32 @@ namespace LizardEggs
 
         public override void InitiateSprites(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam)
         {
-            sLeaser.sprites = new FSprite[2];
-            sLeaser.sprites[0] = new FSprite("Futile_White")
+            sLeaser.sprites = new FSprite[]
             {
-                scale = 1.75f,
-                shader = rCam.room.game.rainWorld.Shaders["FlatLight"],
-                color = Color.Lerp(color, Color.white, 0.4f),
-                alpha = Register.indBrightness.Value
-            };
-            sLeaser.sprites[1] = new FSprite("Futile_White")
-            {
-                scale = 3.5f,
-                shader = rCam.room.game.rainWorld.Shaders["LightSource"],
-                color = color,
-                alpha = Register.indBrightness.Value
+                new FSprite("Futile_White")
+                {
+                    scale = 1.75f,
+                    shader = rCam.room.game.rainWorld.Shaders["FlatLight"],
+                    color = Color.Lerp(color, Color.white, 0.4f),
+                    alpha = Options.indBrightness.Value
+                },
+                new FSprite("Futile_White")
+                {
+                    scale = 3.5f,
+                    shader = rCam.room.game.rainWorld.Shaders["LightSource"],
+                    color = color,
+                    alpha = Options.indBrightness.Value
+                }
             };
             AddToContainer(sLeaser, rCam, null);
         }
 
         public override void DrawSprites(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, float timeStacker, Vector2 camPos)
         {
-            for (int i = 0; i < 2; i++)
+            foreach (FSprite sprite in sLeaser.sprites)
             {
-                sLeaser.sprites[i].x = pos.x - camPos.x;
-                sLeaser.sprites[i].y = pos.y - camPos.y;
+                sprite.x = pos.x - camPos.x;
+                sprite.y = pos.y - camPos.y;
             }
             base.DrawSprites(sLeaser, rCam, timeStacker, camPos);
         }

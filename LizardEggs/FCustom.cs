@@ -1,5 +1,4 @@
-﻿using MoreSlugcats;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using UnityEngine;
 
@@ -8,21 +7,20 @@ namespace LizardEggs
     public static class FCustom
     {
         // CWT
-        public class CritData
+        public class LizardData
         {
-            public CritData(AbstractCreature self)
+            public LizardData()
             {
             }
             public bool isChild;
             public AbstractLizardEgg egg;
             public bool sawPlayerWithEgg;
         }
-        private static readonly ConditionalWeakTable<AbstractCreature, CritData> lizardData = new ConditionalWeakTable<AbstractCreature, CritData>();
-        public static CritData GetData(this AbstractCreature self) => lizardData.GetValue(self, x => new CritData(x));
+        private static readonly ConditionalWeakTable<AbstractCreature, LizardData> lizardData = new ConditionalWeakTable<AbstractCreature, LizardData>();
+        public static LizardData GetData(this AbstractCreature self) => lizardData.GetValue(self, x => new LizardData());
 
         // Custom methods
         public static int ColorToInt(Color color) => (int)(color.r * 100) * 1000000 + (int)(color.g * 100) * 1000 + (int)(color.b * 100);
-
         public static Color IntToColor(int val)
         {
             int r = val / 1000000;
@@ -57,26 +55,27 @@ namespace LizardEggs
 
         public static float EggSpawnChance(SlugcatStats.Name name)
         {
-            if (name == SlugcatStats.Name.Red)
-                return 0.285f;
-            if (name == SlugcatStats.Name.Yellow)
-                return 0.4f;
-            if (ModManager.MSC)
+            switch (name.value)
             {
-                if (name == MoreSlugcatsEnums.SlugcatStatsName.Spear)
+                case "Red":
+                    return 0.285f;
+                case "Yellow":
+                    return 0.4f;
+                case "Spear":
                     return 0.35f;
-                if (name == MoreSlugcatsEnums.SlugcatStatsName.Artificer)
+                case "Artificer":
                     return 0.2f;
-                if (name == MoreSlugcatsEnums.SlugcatStatsName.Gourmand)
+                case "Gourmand":
                     return 0.3f;
-                if (name == MoreSlugcatsEnums.SlugcatStatsName.Rivulet)
-                    return 0.385f;
-                if (name == MoreSlugcatsEnums.SlugcatStatsName.Saint)
+                case "Rivulet":
+                    return 0.35f;
+                case "Saint":
                     return 0.1f;
-                if (name == MoreSlugcatsEnums.SlugcatStatsName.Sofanthiel)
+                case "Inv":
                     return 1f;
+                default:
+                    return Options.baseChance.Value;
             }
-            return Register.baseChance.Value;
         }
     }
 }
