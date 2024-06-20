@@ -8,6 +8,7 @@ namespace LizardEggs
         {
             LizardEgg = new AbstractPhysicalObject.AbstractObjectType("LizardEgg", true);
             LizardEggNPCFood = new SlugNPCAI.Food("LizardEggNPCFood", true);
+            BabyLizard = new CreatureTemplate.Type("BabyLizard", true);
         }
 
         public static void UnregisterValues()
@@ -19,8 +20,13 @@ namespace LizardEggs
             SlugNPCAI.Food lizardEggFood = LizardEggNPCFood;
             lizardEggFood?.Unregister();
             LizardEggNPCFood = null;
+
+            CreatureTemplate.Type babyLizard = BabyLizard;
+            babyLizard?.Unregister();
+            BabyLizard = null;
         }
 
+        public static CreatureTemplate.Type BabyLizard;
         public static AbstractPhysicalObject.AbstractObjectType LizardEgg;
         public static SlugNPCAI.Food LizardEggNPCFood;
     }

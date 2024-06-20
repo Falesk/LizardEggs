@@ -3,6 +3,7 @@ using MoreSlugcats;
 using RWCustom;
 using System;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 using Unity.Mathematics;
 using UnityEngine;
 
@@ -208,48 +209,268 @@ namespace LizardEggs
                     return new IconSymbol.IconSymbolData?(new IconSymbol.IconSymbolData(CreatureTemplate.Type.StandardGroundCreature, Register.LizardEgg, 0));
                 return orig(item);
             };
-            On.ItemSymbol.SpriteNameForItem += delegate (On.ItemSymbol.orig_SpriteNameForItem orig, AbstractPhysicalObject.AbstractObjectType itemType, int intData)
+            On.ItemSymbol.SpriteNameForItem += (On.ItemSymbol.orig_SpriteNameForItem orig, AbstractPhysicalObject.AbstractObjectType itemType, int intData) => itemType == Register.LizardEgg ? "HipsA" : orig(itemType, intData);
+
+            //Baby Lizard
+            On.WorldLoader.CreatureTypeFromString += (On.WorldLoader.orig_CreatureTypeFromString orig, string s) => s.ToLower() == "baby lizard" ? Register.BabyLizard : orig(s);
+            On.LizardAI.ComfortableIdlePosition += (On.LizardAI.orig_ComfortableIdlePosition orig, LizardAI self) => self.lizard.Template.type == Register.BabyLizard ? self.lizard.room.GetTilePosition(self.lizard.bodyChunks[0].pos).x == self.lizard.room.GetTilePosition(self.lizard.bodyChunks[2].pos).x : orig(self);
+            On.Lizard.ctor += delegate (On.Lizard.orig_ctor orig, Lizard self, AbstractCreature abstractCreature, World world)
             {
-                if (itemType == Register.LizardEgg)
-                    return "HipsA";
-                return orig(itemType, intData);
+                orig(self, abstractCreature, world);
+                if (self.abstractCreature is AbstractBabyLizard baby)
+                    self.effectColor = (baby.parent.breedParameters as LizardBreedParams).standardColor;
             };
+            On.StaticWorld.InitCustomTemplates += StaticWorld_InitCustomTemplates;
+            On.StaticWorld.InitStaticWorld += StaticWorld_InitStaticWorld;
+            On.SaveState.AbstractCreatureFromString += SaveState_AbstractCreatureFromString;
 
             // Major
-            On.LizardGraphics.ctor += LizardGraphics_ctor;
             On.Lizard.Update += Lizard_Update;
             On.RoomCamera.ChangeRoom += RoomCamera_ChangeRoom;
             On.SaveState.AbstractPhysicalObjectFromString += SaveState_AbstractPhysicalObjectFromString;
             On.Player.DirectIntoHoles += Player_DirectIntoHoles;
+
+            On.RoomPreprocessor.DecompressStringToAImaps += RoomPreprocessor_DecompressStringToAImaps;
         }
 
-        private void LizardGraphics_ctor(On.LizardGraphics.orig_ctor orig, LizardGraphics self, PhysicalObject ow)
+        private CreatureSpecificAImap[] RoomPreprocessor_DecompressStringToAImaps(On.RoomPreprocessor.orig_DecompressStringToAImaps orig, string s, AImap aimap)
         {
-            orig(self, ow);
-            if (smlLizards.TryGetValue(ow.abstractPhysicalObject.ID, out int stage) && stage < Options.lizGrowthTime.Value && (ow as Lizard).abstractCreature.GetData() is FCustom.LizardData data && Options.youngLiz.Value)
+            CreatureSpecificAImap[] array = new CreatureSpecificAImap[StaticWorld.preBakedPathingCreatures.Length];
+            if (s == null)
             {
-                if (data.isChild)
+                Custom.LogWarning(new string[]
                 {
-                    self.iVars.fatness *= 0.5f;
-                    self.iVars.headSize *= 0.7f;
-                    self.iVars.tailLength *= 0.6f;
-                    return;
-                }
-                stage++;
-                data.isChild = stage < Options.lizGrowthTime.Value;
-                if (data.isChild)
+                "AI MAP STRING WAS NULL!"
+                });
+                for (int i = 0; i < StaticWorld.preBakedPathingCreatures.Length; i++)
                 {
-                    self.iVars.fatness *= 0.5f;
-                    self.iVars.headSize *= 0.7f;
-                    self.iVars.tailLength *= 0.6f;
+                    array[i] = new CreatureSpecificAImap(aimap, StaticWorld.preBakedPathingCreatures[i]);
                 }
-                else
-                {
-                    smlLizards.Remove(ow.abstractPhysicalObject.ID);
-                    return;
-                }
-                smlLizards[ow.abstractPhysicalObject.ID] = stage;
+                return array;
             }
+            string[] array2 = Regex.Split(s, "<<DIV - A>>");
+            aimap.SetVisibilityMapFromCompressedArray(RoomPreprocessor.StringToIntArray(array2[0]));
+            for (int j = 0; j < StaticWorld.preBakedPathingCreatures.Length; j++)
+            {
+                array[j] = new CreatureSpecificAImap(aimap, StaticWorld.preBakedPathingCreatures[j]);
+                try
+                {
+                    int[] intArray = RoomPreprocessor.StringToIntArray(Regex.Split(array2[j + 1], "<<DIV - B>>")[0]);
+                    float[] floatArray = RoomPreprocessor.StringToFloatArray(Regex.Split(array2[j + 1], "<<DIV - B>>")[1]);
+                    array[j].LoadFromCompressedIntGrid(intArray);
+                    array[j].LoadFromCompressedFloatGrid(floatArray);
+                }
+                catch (FormatException)
+                {
+                    Custom.LogWarning(new string[]
+                    {
+                    "AI MAP STRING WAS IN THE WRONG FORMAT:",
+                    array2[j + 1]
+                    });
+                }
+            }
+            return array;
+        }
+
+        private void StaticWorld_InitCustomTemplates(On.StaticWorld.orig_InitCustomTemplates orig)
+        {
+            orig();
+            CreatureTemplate ancestor = StaticWorld.GetCreatureTemplate(CreatureTemplate.Type.LizardTemplate);
+            List<TileTypeResistance> tileResistances = new List<TileTypeResistance>()
+            {
+                new TileTypeResistance(AItile.Accessibility.Floor, 1f, PathCost.Legality.Allowed),
+                new TileTypeResistance(AItile.Accessibility.Corridor, 1.2f, PathCost.Legality.Allowed),
+                new TileTypeResistance(AItile.Accessibility.Climb, 0.8f, PathCost.Legality.Allowed),
+                new TileTypeResistance(AItile.Accessibility.Wall, 1f, PathCost.Legality.Allowed),
+                new TileTypeResistance(AItile.Accessibility.Ceiling, 1.2f, PathCost.Legality.Allowed)
+            };
+            List<TileConnectionResistance> connectionResistances = new List<TileConnectionResistance>()
+            {
+                new TileConnectionResistance(MovementConnection.MovementType.DropToFloor, 20f, PathCost.Legality.Allowed),
+                new TileConnectionResistance(MovementConnection.MovementType.DropToClimb, 2f, PathCost.Legality.Allowed),
+                new TileConnectionResistance(MovementConnection.MovementType.ShortCut, 15f, PathCost.Legality.Allowed),
+                new TileConnectionResistance(MovementConnection.MovementType.ReachOverGap, 1.1f, PathCost.Legality.Allowed),
+                new TileConnectionResistance(MovementConnection.MovementType.ReachUp, 1.1f, PathCost.Legality.Allowed),
+                new TileConnectionResistance(MovementConnection.MovementType.ReachDown, 1.1f, PathCost.Legality.Allowed),
+                new TileConnectionResistance(MovementConnection.MovementType.CeilingSlope, 2f, PathCost.Legality.Allowed)
+            };
+            LizardBreedParams babyBreedParams = new LizardBreedParams(Register.BabyLizard)
+            {
+                bodyRadFac = 1f,
+                pullDownFac = 1f,
+                bodyLengthFac = 1f,
+                biteDelay = 14,
+                biteInFront = 20f,
+                biteHomingSpeed = 1.4f,
+                biteChance = 0.4f,
+                attemptBiteRadius = 90f,
+                getFreeBiteChance = 0.5f,
+                biteDamage = 0.7f,
+                biteDamageChance = 0.2f,
+                toughness = 0.5f,
+                stunToughness = 0.75f,
+                regainFootingCounter = 4,
+                baseSpeed = 3.2f,
+                bodyMass = 1.4f,
+                bodySizeFac = 0.9f,
+                floorLeverage = 1f,
+                maxMusclePower = 2f,
+                danger = 0.35f,
+                aggressionCurveExponent = 0.875f,
+                wiggleSpeed = 1f,
+                wiggleDelay = 15,
+                bodyStiffnes = 0f,
+                swimSpeed = 0.35f,
+                idleCounterSubtractWhenCloseToIdlePos = 0,
+                headShieldAngle = 100f,
+                canExitLounge = true,
+                canExitLoungeWarmUp = true,
+                findLoungeDirection = 1f,
+                loungeDistance = 80f,
+                preLoungeCrouch = 35,
+                preLoungeCrouchMovement = -0.3f,
+                loungeSpeed = 2.5f,
+                loungeMaximumFrames = 20,
+                loungePropulsionFrames = 8,
+                loungeJumpyness = 0.9f,
+                loungeDelay = 310,
+                riskOfDoubleLoungeDelay = 0.8f,
+                postLoungeStun = 20,
+                loungeTendensy = 0.01f,
+                perfectVisionAngle = Mathf.Lerp(1f, -1f, 0.055555556f),
+                periferalVisionAngle = Mathf.Lerp(1f, -1f, 0.45833334f),
+                biteDominance = 0.1f,
+                limbSize = 0.9f,
+                limbThickness = 1f,
+                stepLength = 0.4f,
+                liftFeet = 0f,
+                feetDown = 0f,
+                noGripSpeed = 0.2f,
+                limbSpeed = 6f,
+                limbQuickness = 0.6f,
+                limbGripDelay = 1,
+                smoothenLegMovement = true,
+                legPairDisplacement = 0f,
+                standardColor = new Color(0f, 0.5f, 1f),
+                walkBob = 0.4f,
+                tailSegments = 4,
+                tailStiffness = 400f,
+                tailStiffnessDecline = 0.1f,
+                tailLengthFactor = 1f,
+                tailColorationStart = 0.1f,
+                tailColorationExponent = 1.2f,
+                headSize = 0.9f,
+                neckStiffness = 0f,
+                jawOpenAngle = 105f,
+                jawOpenLowerJawFac = 0.55f,
+                jawOpenMoveJawsApart = 20f,
+                headGraphics = new int[5],
+                framesBetweenLookFocusChange = 20,
+                tamingDifficulty = 1.1f,
+                terrainSpeeds = new LizardBreedParams.SpeedMultiplier[Enum.GetNames(typeof(AItile.Accessibility)).Length]
+            };
+            for (int i = 0; i < babyBreedParams.terrainSpeeds.Length; i++)
+                babyBreedParams.terrainSpeeds[i] = new LizardBreedParams.SpeedMultiplier(0.1f, 1f, 1f, 1f);
+            babyBreedParams.terrainSpeeds[1] = new LizardBreedParams.SpeedMultiplier(1f, 1f, 1f, 1f);
+            babyBreedParams.terrainSpeeds[2] = new LizardBreedParams.SpeedMultiplier(1f, 1f, 1f, 1f);
+            babyBreedParams.terrainSpeeds[3] = new LizardBreedParams.SpeedMultiplier(1f, 1f, 1f, 1f);
+            babyBreedParams.terrainSpeeds[4] = new LizardBreedParams.SpeedMultiplier(0.8f, 1f, 1f, 1f);
+            babyBreedParams.terrainSpeeds[5] = new LizardBreedParams.SpeedMultiplier(0.6f, 1f, 1f, 1f);
+            CreatureTemplate babyTemplate = new CreatureTemplate(Register.BabyLizard, ancestor, tileResistances, connectionResistances, new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Ignores, 0f))
+            {
+                name = "Baby Lizard",
+                breedParameters = babyBreedParams,
+                baseDamageResistance = babyBreedParams.toughness * 2f,
+                meatPoints = 4,
+                visualRadius = 850f,
+                waterVision = 0.35f,
+                throughSurfaceVision = 0.65f,
+                movementBasedVision = 0.3f,
+                waterPathingResistance = 5f,
+                dangerousToPlayer = babyBreedParams.danger,
+                virtualCreature = false,
+                throwAction = "Hiss",
+                pickupAction = "Bite",
+                //doPreBakedPathing = true
+            };
+            babyTemplate.damageRestistances[(int)Creature.DamageType.Bite, 0] = 2.5f;
+            babyTemplate.damageRestistances[(int)Creature.DamageType.Bite, 1] = 3f;
+            try { StaticWorld.creatureTemplates[babyTemplate.type.Index] = babyTemplate; }
+            catch (Exception ex) { Debug.LogException(ex); Debug.Log("Exception"); }
+        }
+
+        private void StaticWorld_InitStaticWorld(On.StaticWorld.orig_InitStaticWorld orig)
+        {
+            orig();
+            StaticWorld.EstablishRelationship(Register.BabyLizard, Register.BabyLizard, new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.PlaysWith, 0.6f));
+            StaticWorld.EstablishRelationship(Register.BabyLizard, CreatureTemplate.Type.LizardTemplate, new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.StayOutOfWay, 0.2f));
+            StaticWorld.EstablishRelationship(Register.BabyLizard, CreatureTemplate.Type.RedLizard, new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Afraid, 0.1f));
+            StaticWorld.EstablishRelationship(Register.BabyLizard, CreatureTemplate.Type.BigEel, new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Afraid, 1f));
+            StaticWorld.EstablishRelationship(Register.BabyLizard, CreatureTemplate.Type.BigNeedleWorm, new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Eats, 0.2f));
+            StaticWorld.EstablishRelationship(Register.BabyLizard, CreatureTemplate.Type.BigSpider, new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Uncomfortable, 0.3f));
+            StaticWorld.EstablishRelationship(Register.BabyLizard, CreatureTemplate.Type.BrotherLongLegs, new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Afraid, 1f));
+            StaticWorld.EstablishRelationship(Register.BabyLizard, CreatureTemplate.Type.Centipede, new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Uncomfortable, 0.2f));
+            StaticWorld.EstablishRelationship(Register.BabyLizard, CreatureTemplate.Type.Centiwing, new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Eats, 0.33f));
+            StaticWorld.EstablishRelationship(Register.BabyLizard, CreatureTemplate.Type.CicadaA, new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Eats, 0.3f));
+            StaticWorld.EstablishRelationship(Register.BabyLizard, CreatureTemplate.Type.CicadaB, new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Eats, 0.3f));
+            StaticWorld.EstablishRelationship(Register.BabyLizard, CreatureTemplate.Type.DaddyLongLegs, new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Afraid, 1f));
+            StaticWorld.EstablishRelationship(Register.BabyLizard, CreatureTemplate.Type.DropBug, new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Afraid, 0.22f));
+            StaticWorld.EstablishRelationship(Register.BabyLizard, CreatureTemplate.Type.EggBug, new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Eats, 0.7f));
+            StaticWorld.EstablishRelationship(Register.BabyLizard, CreatureTemplate.Type.Fly, new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Eats, 0.45f));
+            StaticWorld.EstablishRelationship(Register.BabyLizard, CreatureTemplate.Type.Hazer, new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Eats, 0.31f));
+            StaticWorld.EstablishRelationship(Register.BabyLizard, CreatureTemplate.Type.JetFish, new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Attacks, 0.1f));
+            StaticWorld.EstablishRelationship(Register.BabyLizard, CreatureTemplate.Type.KingVulture, new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Afraid, 0.9f));
+            StaticWorld.EstablishRelationship(Register.BabyLizard, CreatureTemplate.Type.LanternMouse, new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Eats, 0.6f));
+            StaticWorld.EstablishRelationship(Register.BabyLizard, CreatureTemplate.Type.MirosBird, new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Afraid, 0.9f));
+            StaticWorld.EstablishRelationship(Register.BabyLizard, CreatureTemplate.Type.PoleMimic, new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Afraid, 0.1f));
+            StaticWorld.EstablishRelationship(Register.BabyLizard, CreatureTemplate.Type.RedCentipede, new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Afraid, 0.9f));
+            StaticWorld.EstablishRelationship(Register.BabyLizard, CreatureTemplate.Type.Scavenger, new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.StayOutOfWay, 0.5f));
+            StaticWorld.EstablishRelationship(Register.BabyLizard, CreatureTemplate.Type.SmallCentipede, new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Eats, 0.7f));
+            StaticWorld.EstablishRelationship(Register.BabyLizard, CreatureTemplate.Type.SmallNeedleWorm, new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Eats, 0.7f));
+            StaticWorld.EstablishRelationship(Register.BabyLizard, CreatureTemplate.Type.Snail, new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Eats, 0.25f));
+            StaticWorld.EstablishRelationship(Register.BabyLizard, CreatureTemplate.Type.SpitterSpider, new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Afraid, 0.2f));
+            StaticWorld.EstablishRelationship(Register.BabyLizard, CreatureTemplate.Type.TentaclePlant, new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Afraid, 0.15f));
+            StaticWorld.EstablishRelationship(Register.BabyLizard, CreatureTemplate.Type.TubeWorm, new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Eats, 0.45f));
+            StaticWorld.EstablishRelationship(Register.BabyLizard, CreatureTemplate.Type.Vulture, new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Afraid, 0.8f));
+            StaticWorld.EstablishRelationship(Register.BabyLizard, CreatureTemplate.Type.VultureGrub, new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Eats, 0.5f));
+            StaticWorld.EstablishRelationship(CreatureTemplate.Type.Fly, Register.BabyLizard, new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Afraid, 0.5f));
+            StaticWorld.EstablishRelationship(CreatureTemplate.Type.Scavenger, Register.BabyLizard, new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Uncomfortable, 0.7f));
+            if (ModManager.MSC)
+            {
+                StaticWorld.EstablishRelationship(Register.BabyLizard, MoreSlugcatsEnums.CreatureTemplateType.AquaCenti, new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Afraid, 0.5f));
+                StaticWorld.EstablishRelationship(Register.BabyLizard, MoreSlugcatsEnums.CreatureTemplateType.BigJelly, new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Uncomfortable, 0.4f));
+                StaticWorld.EstablishRelationship(Register.BabyLizard, MoreSlugcatsEnums.CreatureTemplateType.FireBug, new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Eats, 0.05f));
+                StaticWorld.EstablishRelationship(Register.BabyLizard, MoreSlugcatsEnums.CreatureTemplateType.HunterDaddy, new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Afraid, 0.85f));
+                StaticWorld.EstablishRelationship(Register.BabyLizard, MoreSlugcatsEnums.CreatureTemplateType.MirosVulture, new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Afraid, 1f));
+                StaticWorld.EstablishRelationship(Register.BabyLizard, MoreSlugcatsEnums.CreatureTemplateType.MotherSpider, new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Uncomfortable, 0.45f));
+                StaticWorld.EstablishRelationship(Register.BabyLizard, MoreSlugcatsEnums.CreatureTemplateType.ScavengerElite, new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Afraid, 0.12f));
+                StaticWorld.EstablishRelationship(Register.BabyLizard, MoreSlugcatsEnums.CreatureTemplateType.SlugNPC, new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.PlaysWith, 0.35f));
+                StaticWorld.EstablishRelationship(Register.BabyLizard, MoreSlugcatsEnums.CreatureTemplateType.StowawayBug, new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Afraid, 0.6f));
+                StaticWorld.EstablishRelationship(Register.BabyLizard, MoreSlugcatsEnums.CreatureTemplateType.TerrorLongLegs, new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Afraid, 1f));
+                StaticWorld.EstablishRelationship(Register.BabyLizard, MoreSlugcatsEnums.CreatureTemplateType.TrainLizard, new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Afraid, 0.2f));
+                StaticWorld.EstablishRelationship(Register.BabyLizard, MoreSlugcatsEnums.CreatureTemplateType.Yeek, new CreatureTemplate.Relationship(CreatureTemplate.Relationship.Type.Eats, 0.85f));
+            }
+        }
+
+        private AbstractCreature SaveState_AbstractCreatureFromString(On.SaveState.orig_AbstractCreatureFromString orig, World world, string creatureString, bool onlyInCurrentRegion)
+        {
+            try
+            {
+                string[] array = creatureString.Split(new[] { "<cA>" }, StringSplitOptions.None);
+                CreatureTemplate.Type type = new CreatureTemplate.Type(array[0]);
+                if (type == Register.BabyLizard)
+                {
+                    CreatureTemplate creatureTemplate = StaticWorld.GetCreatureTemplate(Register.BabyLizard);
+                    WorldCoordinate pos = WorldCoordinate.FromString(array[1]);
+                    EntityID ID = EntityID.FromString(array[2]);
+                    CreatureTemplate parent = StaticWorld.GetCreatureTemplate(array[3]);
+                    int stage = (world.rainCycle.timer < 40 && world.GetAbstractRoom(pos).shelter) ? int.Parse(array[4]) + 1 : int.Parse(array[4]);
+                    return new AbstractBabyLizard(world, creatureTemplate, pos, ID, parent, stage)
+                    { unrecognizedAttributes = SaveUtils.PopulateUnrecognizedStringAttrs(array, 5) };
+                }
+            }
+            catch(Exception ex) { Debug.LogException(ex); }
+            return orig(world, creatureString, onlyInCurrentRegion);
         }
 
         private void Lizard_Update(On.Lizard.orig_Update orig, Lizard self, bool eu)
@@ -334,7 +555,7 @@ namespace LizardEggs
                     { unrecognizedAttributes = SaveUtils.PopulateUnrecognizedStringAttrs(array, 8) };
                 }
             }
-            catch { }
+            catch(Exception ex) { Debug.LogException(ex); }
             return orig(world, objString);
         }
 
@@ -380,7 +601,6 @@ namespace LizardEggs
         }
 
         public static Dictionary<WorldCoordinate, (AbstractCreature, int)> EggsInDen { get; private set; }
-        public static Dictionary<EntityID, int> smlLizards = new Dictionary<EntityID, int>();
         public bool eggInShelter;
         public float eggMotherProgress = 0f;
     }
