@@ -12,7 +12,6 @@ namespace LizardEggs
             public LizardData()
             {
             }
-            public bool isChild;
             public AbstractLizardEgg egg;
             public bool sawPlayerWithEgg;
         }
@@ -20,7 +19,7 @@ namespace LizardEggs
         public static LizardData GetData(this AbstractCreature self) => lizardData.GetValue(self, x => new LizardData());
 
         // Custom methods
-        public static int ColorToInt(Color color) => (int)(color.r * 100) * 1000000 + (int)(color.g * 100) * 1000 + (int)(color.b * 100);
+        public static int ColorToInt(Color color) => (color == Color.black) ? 1 : (int)(color.r * 100) * 1000000 + (int)(color.g * 100) * 1000 + (int)(color.b * 100);
         public static Color IntToColor(int val)
         {
             int r = val / 1000000;

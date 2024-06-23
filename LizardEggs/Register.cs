@@ -8,6 +8,7 @@ namespace LizardEggs
         {
             LizardEgg = new AbstractPhysicalObject.AbstractObjectType("LizardEgg", true);
             LizardEggNPCFood = new SlugNPCAI.Food("LizardEggNPCFood", true);
+            EggConv = new SLOracleBehaviorHasMark.MiscItemType("EggConv", true);
         }
 
         public static void UnregisterValues()
@@ -19,9 +20,14 @@ namespace LizardEggs
             SlugNPCAI.Food lizardEggFood = LizardEggNPCFood;
             lizardEggFood?.Unregister();
             LizardEggNPCFood = null;
+
+            SLOracleBehaviorHasMark.MiscItemType eggConv = EggConv;
+            eggConv?.Unregister();
+            EggConv = null;
         }
 
         public static AbstractPhysicalObject.AbstractObjectType LizardEgg;
         public static SlugNPCAI.Food LizardEggNPCFood;
+        public static SLOracleBehaviorHasMark.MiscItemType EggConv;
     }
 }
