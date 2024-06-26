@@ -77,7 +77,6 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AbstractBabyLizard.cs" />
     <Compile Include="AbstractLizardEgg.cs" />
     <Compile Include="FCustom.cs" />
     <Compile Include="LizardEgg.cs" />

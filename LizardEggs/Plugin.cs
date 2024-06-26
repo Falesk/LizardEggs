@@ -3,6 +3,7 @@ using MoreSlugcats;
 using RWCustom;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using Unity.Mathematics;
 using UnityEngine;
 
@@ -13,7 +14,17 @@ namespace LizardEggs
     {
         public const string GUID = "falesk.lizardeggs";
         public const string Name = "Lizard Eggs";
-        public const string Version = "1.1.5";
+        public const string Version = "1.1.6";
+        public static string FilePath
+        {
+            get
+            {
+                foreach (ModManager.Mod mod in ModManager.ActiveMods)
+                    if (mod.id == GUID)
+                        return $"{mod.path}{Path.DirectorySeparatorChar}plugins{Path.DirectorySeparatorChar}babyLizards.txt";
+                throw new Exception("Exception in creating file path");
+            }
+        }
         public void Awake()
         {
             // Mod Init / Deinit
@@ -22,6 +33,11 @@ namespace LizardEggs
                 orig(self);
                 Register.RegisterValues();
                 MachineConnector.SetRegisteredOI(GUID, new Options());
+                lizards = new List<SavedLizard>();
+                if (File.Exists(FilePath))
+                    foreach (string line in File.ReadLines(FilePath))
+                        lizards.Add(SavedLizard.FromString(line));
+                else File.Create(FilePath);
             };
             On.RainWorld.OnModsDisabled += delegate (On.RainWorld.orig_OnModsDisabled orig, RainWorld self, ModManager.Mod[] newlyDisabledMods)
             {
@@ -120,6 +136,46 @@ namespace LizardEggs
                 }
             };
             On.SLOracleBehaviorHasMark.TypeOfMiscItem += (On.SLOracleBehaviorHasMark.orig_TypeOfMiscItem orig, SLOracleBehaviorHasMark self, PhysicalObject testItem) => (testItem is LizardEgg) ? Register.EggConv : orig(self, testItem);
+            On.SaveState.SessionEnded += delegate (On.SaveState.orig_SessionEnded orig, SaveState self, RainWorldGame game, bool survived, bool newMalnourished)
+            {
+                orig(self, game, survived, newMalnourished);
+                File.WriteAllText(FilePath, string.Empty);
+                for (int i = 0; i < lizards.Count; i++)
+                {
+                    if (lizards[i].slatedForDeletion)
+                    {
+                        if (survived)
+                        {
+                            lizards.RemoveAt(i--);
+                            continue;
+                        }
+                        else lizards[i].slatedForDeletion = false;
+                    }
+                    lizards[i].stage++;
+                    File.AppendAllText(FilePath, $"{lizards[i]}\n");
+                }
+            };
+            On.RainWorldGame.Update += delegate (On.RainWorldGame.orig_Update orig, RainWorldGame self)
+            {
+                orig(self);
+                foreach (SavedLizard s in lizards)
+                {
+                    bool flag = false;
+                    foreach (AbstractRoom room in self.world.abstractRooms)
+                    {
+                        foreach (AbstractCreature abstr in room.creatures)
+                        {
+                            if (s.ID == abstr.ID)
+                            {
+                                flag = true;
+                                break;
+                            }
+                        }
+                        if (flag) break;
+                    }
+                    s.slatedForDeletion = !flag;
+                }
+            };
 
             // Player stuff
             On.Player.Grabability += delegate (On.Player.orig_Grabability orig, Player self, PhysicalObject obj)
@@ -202,17 +258,23 @@ namespace LizardEggs
             On.Lizard.ctor += delegate (On.Lizard.orig_ctor orig, Lizard self, AbstractCreature abstractCreature, World world)
             {
                 orig(self, abstractCreature, world);
-                if (self.abstractCreature is AbstractBabyLizard abstr && abstr.GetData() is FCustom.LizardData cData && Options.colorInheritance.Value)
-                    self.effectColor = abstr.color;
+                foreach (SavedLizard saved in lizards)
+                    if (saved.ID == self.abstractCreature.ID && saved.color != Color.black && Options.colorInheritance.Value)
+                        self.effectColor = saved.color;
             };
             On.LizardGraphics.ctor += delegate (On.LizardGraphics.orig_ctor orig, LizardGraphics self, PhysicalObject ow)
             {
                 orig(self, ow);
-                if (ow.abstractPhysicalObject is AbstractBabyLizard abstr && abstr.stage < Options.lizGrowthTime.Value)
+                foreach (SavedLizard saved in lizards)
                 {
-                    self.iVars.fatness *= 0.5f;
-                    self.iVars.headSize *= 0.7f;
-                    self.iVars.tailLength *= 0.6f;
+                    if (saved.ID == ow.abstractPhysicalObject.ID && saved.stage < Options.lizGrowthTime.Value)
+                    {
+                        float abs = (float)saved.stage / Options.lizGrowthTime.Value;
+                        self.iVars.fatness = self.iVars.fatness * 0.4f + 0.6f * abs;
+                        self.iVars.headSize = self.iVars.headSize * 0.6f + 0.4f * abs;
+                        self.iVars.tailLength = self.iVars.tailLength * 0.5f + 0.5f * abs;
+                        break;
+                    }
                 }
             };
 
@@ -235,43 +297,35 @@ namespace LizardEggs
             On.ItemSymbol.SpriteNameForItem += (On.ItemSymbol.orig_SpriteNameForItem orig, AbstractPhysicalObject.AbstractObjectType itemType, int intData) => itemType == Register.LizardEgg ? "HipsA" : orig(itemType, intData);
 
             // Major
-            On.RegionState.AdaptWorldToRegionState += RegionState_AdaptWorldToRegionState;
-            On.RegionState.CreatureToStringInDenPos += RegionState_CreatureToStringInDenPos;
             On.Lizard.Update += Lizard_Update;
             On.RoomCamera.ChangeRoom += RoomCamera_ChangeRoom;
             On.SaveState.AbstractPhysicalObjectFromString += SaveState_AbstractPhysicalObjectFromString;
-            On.SaveState.AbstractCreatureFromString += SaveState_AbstractCreatureFromString;
             On.Player.DirectIntoHoles += Player_DirectIntoHoles;
-        }
-
-        private void RegionState_AdaptWorldToRegionState(On.RegionState.orig_AdaptWorldToRegionState orig, RegionState self)
-        {
-            orig(self);
-            for (int i = 0; i < self.savedPopulation.Count; i++)
-            {
-                AbstractCreature abstractCreature = SaveState.AbstractCreatureFromString(self.world, self.savedPopulation[i], true);
-                if (SaveState.AbstractCreatureFromString(self.world, self.savedPopulation[i], true) is AbstractBabyLizard abstr)
-                {
-                    WorldCoordinate pos = abstractCreature.pos;
-                    self.world.GetAbstractRoom(pos).RemoveEntity(abstractCreature);
-                    abstractCreature.Destroy();
-                    self.world.GetAbstractRoom(pos).AddEntity(abstr);
-                }
-            }
         }
 
         private void Lizard_Update(On.Lizard.orig_Update orig, Lizard self, bool eu)
         {
             if (self.abstractCreature.InDen)
                 return;
-            if (self.abstractCreature is AbstractBabyLizard && self.AI.friendTracker.friend == null && self.room.PlayersInRoom.Count > 0)
+            foreach (SavedLizard saved in lizards)
             {
-                Player player = self.room.PlayersInRoom[0];
-                self.AI.LizardPlayerRelationChange(1f, player.abstractCreature);
-                self.AI.friendTracker.friend = player;
-                self.AI.friendTracker.friendRel = new SocialMemory.Relationship(player.abstractCreature.ID) { tempLike = 1f };
+                if (saved.ID == self.abstractCreature.ID)
+                {
+                    if (self.AI.friendTracker.friend == null && self.room.PlayersInRoom.Count > 0)
+                    {
+                        Player player = self.room.PlayersInRoom[0];
+                        SocialMemory.Relationship relationship = self.abstractCreature.state.socialMemory.GetOrInitiateRelationship(player.abstractCreature.ID);
+                        relationship.InfluenceKnow(Mathf.Abs(0.85f) * 0.25f);
+                        relationship.tempLike = 1f;
+                        relationship.like = 1f;
+                        self.AI.friendTracker.friend = player;
+                        self.AI.friendTracker.friendRel = relationship;
+                    }
+                    if (self.State.dead)
+                        saved.slatedForDeletion = !self.room.abstractRoom.shelter;
+                }
             }
-            if (Options.tamedAggressiveness.Value || !(self.AI.friendTracker?.creature is Player))
+            if (Options.tamedAggressiveness.Value || !(self.AI.friendTracker.creature is Player))
             {
                 foreach (PhysicalObject obj in self.room.physicalObjects[1])
                 {
@@ -356,38 +410,6 @@ namespace LizardEggs
             return orig(world, objString);
         }
 
-        private string RegionState_CreatureToStringInDenPos(On.RegionState.orig_CreatureToStringInDenPos orig, RegionState self, AbstractCreature critter, int validSaveShelter, int activeGate)
-        {
-            try
-            {
-                if (critter is AbstractBabyLizard abstr && abstr.pos.room != activeGate && abstr.state.alive)
-                    return abstr.ToString();
-            }
-            catch (Exception ex) { Debug.LogException(ex); }
-            return orig(self, critter, validSaveShelter, activeGate);
-        }
-
-        private AbstractCreature SaveState_AbstractCreatureFromString(On.SaveState.orig_AbstractCreatureFromString orig, World world, string creatureString, bool onlyInCurrentRegion)
-        {
-            try
-            {
-                string[] array = creatureString.Split(new[] { "<cA>" }, StringSplitOptions.None);
-                CreatureTemplate.Type type = new CreatureTemplate.Type(array[0]);
-                if (StaticWorld.GetCreatureTemplate(type).TopAncestor().type == CreatureTemplate.Type.LizardTemplate && array.Length > 4 && int.TryParse(array[4], out int st))
-                {
-                    CreatureTemplate creatureTemplate = StaticWorld.GetCreatureTemplate(type);
-                    EntityID ID = EntityID.FromString(array[1]);
-                    WorldCoordinate pos = WorldCoordinate.FromString(array[2]);
-                    Color color = FCustom.IntToColor(int.Parse(array[3]));
-                    int stage = (world.rainCycle.timer < 40 && world.GetAbstractRoom(pos).shelter && st < Options.lizGrowthTime.Value) ? st + 1 : st;
-                    return new AbstractBabyLizard(world, creatureTemplate, pos, ID, color, stage)
-                    { unrecognizedAttributes = SaveUtils.PopulateUnrecognizedStringAttrs(array, 5) };
-                }
-            }
-            catch (Exception ex) { Debug.LogException(ex); }
-            return orig(world, creatureString, onlyInCurrentRegion);
-        }
-
         private void Player_DirectIntoHoles(On.Player.orig_DirectIntoHoles orig, Player self)
         {
             orig(self);
@@ -419,18 +441,22 @@ namespace LizardEggs
             string parentType = array[7];
             WorldCoordinate pos = WorldCoordinate.FromString(array[2]);
             EntityID lizID = world.game.GetNewID(EntityID.FromString(array[5]).spawner);
-            Color color = Options.colorInheritance.Value ? FCustom.IntToColor(int.Parse(array[3])) : Color.clear;
+            Color color = Options.colorInheritance.Value ? FCustom.IntToColor(int.Parse(array[3])) : Color.black;
 
-            AbstractBabyLizard abstrLizard;
+            AbstractCreature abstrLizard;
             if (ModManager.MSC && Options.trLizOpport.Value && parentType == "Red Lizard" && UnityEngine.Random.value < 0.1f)
-                abstrLizard = new AbstractBabyLizard(world, StaticWorld.GetCreatureTemplate(MoreSlugcatsEnums.CreatureTemplateType.TrainLizard), pos, lizID, color);
+                abstrLizard = new AbstractCreature(world, StaticWorld.GetCreatureTemplate(MoreSlugcatsEnums.CreatureTemplateType.TrainLizard), null, pos, lizID);
             else if (parentType != "")
-                abstrLizard = new AbstractBabyLizard(world, StaticWorld.GetCreatureTemplate(parentType), pos, lizID, color);
-            else abstrLizard = new AbstractBabyLizard(world, FCustom.lizTypes[UnityEngine.Random.Range(0, FCustom.lizTypes.Count)], pos, world.game.GetNewID(), color);
+                abstrLizard = new AbstractCreature(world, StaticWorld.GetCreatureTemplate(parentType), null, pos, lizID);
+            else abstrLizard = new AbstractCreature(world, FCustom.lizTypes[UnityEngine.Random.Range(0, FCustom.lizTypes.Count)], null, pos, lizID);
+
+            SavedLizard savedLizard = new SavedLizard(lizID, color, 0);
+            File.AppendAllText(FilePath, $"{savedLizard}\n");
+            lizards.Add(savedLizard);
             return abstrLizard;
         }
 
-        public bool AddToEggsDict(Room room, AbstractCreature abstr)
+        public static bool AddToEggsDict(Room room, AbstractCreature abstr)
         {
             if (EggsInDen.ContainsKey(abstr.spawnDen) || !abstr.spawnDen.NodeDefined || abstr.creatureTemplate.name == "YoungLizard")
                 return false;
@@ -447,7 +473,35 @@ namespace LizardEggs
         }
 
         public static Dictionary<WorldCoordinate, (AbstractCreature, int)> EggsInDen { get; private set; }
+        public static List<SavedLizard> lizards;
         public bool eggInShelter;
         public float eggMotherProgress = 0f;
+
+        public class SavedLizard
+        {
+            public SavedLizard(EntityID ID, Color color, int stage)
+            {
+                this.ID = ID;
+                this.color = color;
+                this.stage = stage;
+                slatedForDeletion = false;
+            }
+
+            public override string ToString() => $"{ID}~{FCustom.ColorToInt(color)}~{stage}";
+
+            public static SavedLizard FromString(string s)
+            {
+                string[] array = s.Split('~');
+                EntityID ID = EntityID.FromString(array[0]);
+                Color color = FCustom.IntToColor(int.Parse(array[1]));
+                int stage = int.Parse(array[2]);
+                return new SavedLizard(ID, color, stage);
+            }
+
+            public EntityID ID;
+            public Color color;
+            public int stage;
+            public bool slatedForDeletion;
+        }
     }
 }

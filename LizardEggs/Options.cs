@@ -9,7 +9,7 @@ namespace LizardEggs
         public Options()
         {
             eggGrowthTime = config.Bind("eggGrowthTime", 3, new ConfigurableInfo("Changes the amount of cycles required to hatch an egg", new ConfigAcceptableRange<int>(1, 99), tags: "Cycles to hatch"));
-            lizGrowthTime = config.Bind("lizGrowthTime", 1, new ConfigurableInfo("Changes the amount of cycles required for the cub to grow up (not functional yet)", new ConfigAcceptableRange<int>(1, 99), tags: "Cycles to grow up"));
+            lizGrowthTime = config.Bind("lizGrowthTime", 1, new ConfigurableInfo("Changes the amount of cycles required for the cub to grow up", new ConfigAcceptableRange<int>(1, 99), tags: "Cycles to grow up"));
             trLizOpport = config.Bind("trLizOpport", false, new ConfigurableInfo("If enabled, then with some chance a Train lizard can hatch from a Red lizard egg", tags: "Opportunity for a Train lizard to appear"));
             colorInheritance = config.Bind("colorInheritance", false, new ConfigurableInfo("If enabled, lizards inherit the color of their parent", tags: "Color inheritance"));
             tamedAggressiveness = config.Bind("tamedAggressiveness", false, new ConfigurableInfo("If enabled, tamed lizards will attack you if you steal their egg", tags: "Aggressiveness of the tamed"));
