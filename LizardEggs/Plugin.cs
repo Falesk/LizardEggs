@@ -4,6 +4,7 @@ using RWCustom;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using Unity.Mathematics;
 using UnityEngine;
 
@@ -14,17 +15,8 @@ namespace LizardEggs
     {
         public const string GUID = "falesk.lizardeggs";
         public const string Name = "Lizard Eggs";
-        public const string Version = "1.1.6";
-        public static string FilePath
-        {
-            get
-            {
-                foreach (ModManager.Mod mod in ModManager.ActiveMods)
-                    if (mod.id == GUID)
-                        return $"{mod.path}{Path.DirectorySeparatorChar}plugins{Path.DirectorySeparatorChar}babyLizards.txt";
-                throw new Exception("Exception in creating file path");
-            }
-        }
+        public const string Version = "1.1.6.1";
+        public static string FilePath { get; private set; }
         public void Awake()
         {
             // Mod Init / Deinit
@@ -34,6 +26,9 @@ namespace LizardEggs
                 Register.RegisterValues();
                 MachineConnector.SetRegisteredOI(GUID, new Options());
                 lizards = new List<SavedLizard>();
+                foreach (ModManager.Mod mod in ModManager.ActiveMods)
+                    if (mod.id == GUID)
+                        FilePath = $"{mod.path}{Path.DirectorySeparatorChar}plugins{Path.DirectorySeparatorChar}babyLizards.txt";
                 if (File.Exists(FilePath))
                     foreach (string line in File.ReadLines(FilePath))
                         lizards.Add(SavedLizard.FromString(line));
@@ -42,13 +37,10 @@ namespace LizardEggs
             On.RainWorld.OnModsDisabled += delegate (On.RainWorld.orig_OnModsDisabled orig, RainWorld self, ModManager.Mod[] newlyDisabledMods)
             {
                 orig(self, newlyDisabledMods);
-                foreach (ModManager.Mod mod in newlyDisabledMods)
+                if (newlyDisabledMods.Any(mod => mod.id == GUID))
                 {
-                    if (mod.id == GUID)
-                    {
-                        Register.UnregisterValues();
-                        return;
-                    }
+                    Register.UnregisterValues();
+                    return;
                 }
             };
 
@@ -142,6 +134,11 @@ namespace LizardEggs
                 File.WriteAllText(FilePath, string.Empty);
                 for (int i = 0; i < lizards.Count; i++)
                 {
+                    if (lizards[i].stage - Options.lizGrowthTime.Value > 6)
+                    {
+                        lizards.RemoveAt(i--);
+                        continue;
+                    }
                     if (lizards[i].slatedForDeletion)
                     {
                         if (survived)
@@ -149,31 +146,10 @@ namespace LizardEggs
                             lizards.RemoveAt(i--);
                             continue;
                         }
-                        else lizards[i].slatedForDeletion = false;
+                        lizards[i].slatedForDeletion = false;
                     }
-                    lizards[i].stage++;
+                    else lizards[i].stage += survived ? 1 : 0;
                     File.AppendAllText(FilePath, $"{lizards[i]}\n");
-                }
-            };
-            On.RainWorldGame.Update += delegate (On.RainWorldGame.orig_Update orig, RainWorldGame self)
-            {
-                orig(self);
-                foreach (SavedLizard s in lizards)
-                {
-                    bool flag = false;
-                    foreach (AbstractRoom room in self.world.abstractRooms)
-                    {
-                        foreach (AbstractCreature abstr in room.creatures)
-                        {
-                            if (s.ID == abstr.ID)
-                            {
-                                flag = true;
-                                break;
-                            }
-                        }
-                        if (flag) break;
-                    }
-                    s.slatedForDeletion = !flag;
                 }
             };
 
@@ -199,17 +175,7 @@ namespace LizardEggs
             On.Player.Update += delegate (On.Player.orig_Update orig, Player self, bool eu)
             {
                 orig(self, eu);
-                bool flag = false;
-                if (self.room != null && self.room.abstractRoom.shelter)
-                    foreach (PhysicalObject obj in self.room.physicalObjects[1])
-                    {
-                        if (obj is LizardEgg)
-                        {
-                            flag = true;
-                            break;
-                        }
-                    }
-                eggInShelter = flag;
+                eggInShelter = self.room != null && self.room.abstractRoom.shelter && self.room.physicalObjects[1].Any(obj => obj is LizardEgg);
             };
 
             // Lizard AI stuff
@@ -259,20 +225,22 @@ namespace LizardEggs
             {
                 orig(self, abstractCreature, world);
                 foreach (SavedLizard saved in lizards)
-                    if (saved.ID == self.abstractCreature.ID && saved.color != Color.black && Options.colorInheritance.Value)
+                    if (saved.ID == self.abstractCreature.ID && Options.colorInheritance.Value)
                         self.effectColor = saved.color;
             };
             On.LizardGraphics.ctor += delegate (On.LizardGraphics.orig_ctor orig, LizardGraphics self, PhysicalObject ow)
             {
                 orig(self, ow);
+                if (!Options.youngLiz.Value)
+                    return;
                 foreach (SavedLizard saved in lizards)
                 {
                     if (saved.ID == ow.abstractPhysicalObject.ID && saved.stage < Options.lizGrowthTime.Value)
                     {
-                        float abs = (float)saved.stage / Options.lizGrowthTime.Value;
-                        self.iVars.fatness = self.iVars.fatness * 0.4f + 0.6f * abs;
-                        self.iVars.headSize = self.iVars.headSize * 0.6f + 0.4f * abs;
-                        self.iVars.tailLength = self.iVars.tailLength * 0.5f + 0.5f * abs;
+                        float num = (float)saved.stage / Options.lizGrowthTime.Value;
+                        self.iVars.fatness = self.iVars.fatness * 0.4f + 0.6f * num;
+                        self.iVars.headSize = self.iVars.headSize * 0.6f + 0.4f * num;
+                        self.iVars.tailLength = self.iVars.tailLength * 0.5f + 0.5f * num;
                         break;
                     }
                 }
@@ -289,8 +257,8 @@ namespace LizardEggs
             {
                 if (item.type == Register.LizardEgg)
                 {
-                    int data = (item is AbstractLizardEgg egg) ? FCustom.ColorToInt(egg.color) : 0;
-                    return new IconSymbol.IconSymbolData?(new IconSymbol.IconSymbolData(CreatureTemplate.Type.StandardGroundCreature, Register.LizardEgg, data));
+                    int data = (item is AbstractLizardEgg egg) ? ((FCustom.ColorToInt(egg.color) == 0) ? 1 : FCustom.ColorToInt(egg.color)) : 0;
+                    return new IconSymbol.IconSymbolData(CreatureTemplate.Type.StandardGroundCreature, Register.LizardEgg, data);
                 }
                 return orig(item);
             };
@@ -311,7 +279,7 @@ namespace LizardEggs
             {
                 if (saved.ID == self.abstractCreature.ID)
                 {
-                    if (self.AI.friendTracker.friend == null && self.room.PlayersInRoom.Count > 0)
+                    if (self.AI.friendTracker.friend == null && self.room.PlayersInRoom.Count > 0 && self.Consious)
                     {
                         Player player = self.room.PlayersInRoom[0];
                         SocialMemory.Relationship relationship = self.abstractCreature.state.socialMemory.GetOrInitiateRelationship(player.abstractCreature.ID);
@@ -361,13 +329,13 @@ namespace LizardEggs
                     }
                 }
             }
-            if (self.grasps[0]?.grabbed != null && self.grasps[0].grabbed is LizardEgg && self.enteringShortCut != null && self.room.shortcutData(self.enteringShortCut.Value).shortCutType == ShortcutData.Type.CreatureHole && self.abstractCreature.spawnDen.abstractNode == self.room.shortcutData(self.enteringShortCut.Value).destNode && self.abstractCreature.GetData() is FCustom.LizardData data1)
+            if (self.grasps[0]?.grabbed != null && self.grasps[0].grabbed is LizardEgg && self.enteringShortCut != null && self.room.shortcutData(self.enteringShortCut.Value).shortCutType == ShortcutData.Type.CreatureHole && self.abstractCreature.spawnDen.abstractNode == self.room.shortcutData(self.enteringShortCut.Value).destNode && self.abstractCreature.GetData() is FCustom.LizardData lData)
             {
                 PhysicalObject egg = self.grasps[0].grabbed;
                 self.LoseAllGrasps();
                 egg.Destroy();
                 self.AI.behavior = LizardAI.Behavior.Idle;
-                data1.egg = null;
+                lData.egg = null;
                 if (EggsInDen.ContainsKey(self.abstractCreature.spawnDen))
                 {
                     FCustom.ChangeDictTuple(EggsInDen, self.abstractCreature.spawnDen, 1);
@@ -440,19 +408,23 @@ namespace LizardEggs
             FCustom.InitLizTypes();
             string parentType = array[7];
             WorldCoordinate pos = WorldCoordinate.FromString(array[2]);
+            UnityEngine.Random.State state = UnityEngine.Random.state;
+            UnityEngine.Random.InitState(EntityID.FromString(array[0]).RandomSeed);
             EntityID lizID = world.game.GetNewID(EntityID.FromString(array[5]).spawner);
-            Color color = Options.colorInheritance.Value ? FCustom.IntToColor(int.Parse(array[3])) : Color.black;
+            Color color = FCustom.IntToColor(int.Parse(array[3]));
 
             AbstractCreature abstrLizard;
             if (ModManager.MSC && Options.trLizOpport.Value && parentType == "Red Lizard" && UnityEngine.Random.value < 0.1f)
                 abstrLizard = new AbstractCreature(world, StaticWorld.GetCreatureTemplate(MoreSlugcatsEnums.CreatureTemplateType.TrainLizard), null, pos, lizID);
-            else if (parentType != "")
-                abstrLizard = new AbstractCreature(world, StaticWorld.GetCreatureTemplate(parentType), null, pos, lizID);
-            else abstrLizard = new AbstractCreature(world, FCustom.lizTypes[UnityEngine.Random.Range(0, FCustom.lizTypes.Count)], null, pos, lizID);
+            else abstrLizard = new AbstractCreature(world, (parentType == "") ? FCustom.lizTypes[UnityEngine.Random.Range(0, FCustom.lizTypes.Count)] : StaticWorld.GetCreatureTemplate(parentType), null, pos, lizID);
+            UnityEngine.Random.state = state;
 
-            SavedLizard savedLizard = new SavedLizard(lizID, color, 0);
-            File.AppendAllText(FilePath, $"{savedLizard}\n");
-            lizards.Add(savedLizard);
+            if ((Options.colorInheritance.Value || Options.youngLiz.Value) && !lizards.Any(liz => liz.ID == lizID))
+            {
+                SavedLizard savedLizard = new SavedLizard(lizID, color, 0);
+                File.AppendAllText(FilePath, $"{savedLizard}\n");
+                lizards.Add(savedLizard);
+            }
             return abstrLizard;
         }
 
@@ -464,7 +436,7 @@ namespace LizardEggs
             int amount = (room.world.GetSpawner(abstr.ID) as World.SimpleSpawner)?.amount ?? 1;
             float chance = FCustom.EggSpawnChance((room.world.game.Players[0].realizedCreature as Player).playerState.slugcatCharacter);
             if (Options.occurrenceFrequency.Value > 1f)
-                chance += (1 - chance) * (1 - 1 / Options.occurrenceFrequency.Value);
+                chance += (1f - chance) * (1f - 1f / Options.occurrenceFrequency.Value);
             else chance *= Options.occurrenceFrequency.Value;
             for (int i = 0; i < amount; i++)
                 if (UnityEngine.Random.value < chance)

@@ -1,4 +1,5 @@
 ﻿using RWCustom;
+using System.Linq;
 using UnityEngine;
 
 namespace LizardEggs
@@ -41,18 +42,11 @@ namespace LizardEggs
                 lastShaking--;
             if (lastShaking <= 0 && Random.value < 0.0025f && AbsStage > 0.33f)
             {
-                firstChunk.vel += Custom.RNV() * Random.Range(1f, 3f);
+                firstChunk.vel += Custom.RNV() * Random.Range(1f, 3f) * (0.66f + AbsStage);
                 lastShaking = Random.Range(120 / (int)(3 * AbsStage), 400 / (int)(3 * AbsStage));
             }
 
-            bool flag = false;
-            foreach (AbstractCreature abstr in room.abstractRoom.creatures)
-                if (abstr.ID == AbstractLizardEgg.parentID)
-                {
-                    flag = true;
-                    break;
-                }
-            if (flag && AbstractLizardEgg.stage == 0)
+            if (room.abstractRoom.creatures.Any(abstr => abstr.ID == AbstractLizardEgg.parentID) && AbstractLizardEgg.stage == 0)
             {
                 lightIntensity += 0.025f;
                 if (lightIntensity > 1f)
