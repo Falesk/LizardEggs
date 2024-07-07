@@ -15,7 +15,7 @@ namespace LizardEggs
     {
         public const string GUID = "falesk.lizardeggs";
         public const string Name = "Lizard Eggs";
-        public const string Version = "1.1.6.1";
+        public const string Version = "1.1.6.3";
         public static string FilePath { get; private set; }
         public void Awake()
         {
@@ -27,8 +27,13 @@ namespace LizardEggs
                 MachineConnector.SetRegisteredOI(GUID, new Options());
                 lizards = new List<SavedLizard>();
                 foreach (ModManager.Mod mod in ModManager.ActiveMods)
+                {
                     if (mod.id == GUID)
+                    {
                         FilePath = $"{mod.path}{Path.DirectorySeparatorChar}plugins{Path.DirectorySeparatorChar}babyLizards.txt";
+                        break;
+                    }
+                }
                 if (File.Exists(FilePath))
                     foreach (string line in File.ReadLines(FilePath))
                         lizards.Add(SavedLizard.FromString(line));
@@ -38,10 +43,7 @@ namespace LizardEggs
             {
                 orig(self, newlyDisabledMods);
                 if (newlyDisabledMods.Any(mod => mod.id == GUID))
-                {
                     Register.UnregisterValues();
-                    return;
-                }
             };
 
             // Slugpups stuff
@@ -68,16 +70,15 @@ namespace LizardEggs
             };
             On.WinState.CycleCompleted += delegate (On.WinState.orig_CycleCompleted orig, WinState self, RainWorldGame game)
             {
-                if (ModManager.MSC && eggInShelter && game.GetStorySession.playerSessionRecords[0].pupCountInDen == 0 && self.GetTracker(MoreSlugcatsEnums.EndgameID.Mother, eggInShelter) is WinState.FloatTracker tracker && tracker != null)
+                if (ModManager.MSC && eggInShelter && game.GetStorySession.playerSessionRecords[0].pupCountInDen == 0 && self.GetTracker(MoreSlugcatsEnums.EndgameID.Mother, eggInShelter) is WinState.FloatTracker tracker)
                 {
-                    eggMotherProgress = tracker.progress;
-                    tracker.SetProgress(eggMotherProgress + 0.167f);
-                    eggMotherProgress += 0.167f;
+                    eggMotherProgress = tracker.progress + 0.167f;
+                    tracker.SetProgress(eggMotherProgress);
                 }
                 else if (ModManager.MSC && game.GetStorySession.playerSessionRecords[0].pupCountInDen == 0)
                     eggMotherProgress = 0f;
                 orig(self, game);
-                if (ModManager.MSC && eggInShelter && game.GetStorySession.playerSessionRecords[0].pupCountInDen == 0 && self.GetTracker(MoreSlugcatsEnums.EndgameID.Mother, eggInShelter) is WinState.FloatTracker tracker1 && tracker1 != null)
+                if (ModManager.MSC && eggInShelter && game.GetStorySession.playerSessionRecords[0].pupCountInDen == 0 && self.GetTracker(MoreSlugcatsEnums.EndgameID.Mother, eggInShelter) is WinState.FloatTracker tracker1)
                     tracker1.SetProgress(eggMotherProgress);
             };
             On.PlayerSessionRecord.AddEat += delegate (On.PlayerSessionRecord.orig_AddEat orig, PlayerSessionRecord self, PhysicalObject eatenObject)
@@ -122,10 +123,7 @@ namespace LizardEggs
             {
                 orig(self);
                 if (self.id == Conversation.ID.Moon_Misc_Item && self.describeItem == Register.EggConv)
-                {
                     self.events.Add(new Conversation.TextEvent(self, 10, self.Translate("It looks like the egg of some kind of creature. How interesting, it has a very hard shell,<LINE>and there are bioluminescent inclusions all over its surface! The indigenous fauna has adapted well."), 0));
-                    return;
-                }
             };
             On.SLOracleBehaviorHasMark.TypeOfMiscItem += (On.SLOracleBehaviorHasMark.orig_TypeOfMiscItem orig, SLOracleBehaviorHasMark self, PhysicalObject testItem) => (testItem is LizardEgg) ? Register.EggConv : orig(self, testItem);
             On.SaveState.SessionEnded += delegate (On.SaveState.orig_SessionEnded orig, SaveState self, RainWorldGame game, bool survived, bool newMalnourished)
@@ -225,8 +223,13 @@ namespace LizardEggs
             {
                 orig(self, abstractCreature, world);
                 foreach (SavedLizard saved in lizards)
+                {
                     if (saved.ID == self.abstractCreature.ID && Options.colorInheritance.Value)
+                    {
                         self.effectColor = saved.color;
+                        break;
+                    }
+                }
             };
             On.LizardGraphics.ctor += delegate (On.LizardGraphics.orig_ctor orig, LizardGraphics self, PhysicalObject ow)
             {
@@ -291,9 +294,10 @@ namespace LizardEggs
                     }
                     if (self.State.dead)
                         saved.slatedForDeletion = !self.room.abstractRoom.shelter;
+                    break;
                 }
             }
-            if (Options.tamedAggressiveness.Value || !(self.AI.friendTracker.creature is Player))
+            if (Options.tamedAggressiveness.Value || !(self.AI.friendTracker.friend is Player))
             {
                 foreach (PhysicalObject obj in self.room.physicalObjects[1])
                 {
@@ -329,10 +333,11 @@ namespace LizardEggs
                     }
                 }
             }
-            if (self.grasps[0]?.grabbed != null && self.grasps[0].grabbed is LizardEgg && self.enteringShortCut != null && self.room.shortcutData(self.enteringShortCut.Value).shortCutType == ShortcutData.Type.CreatureHole && self.abstractCreature.spawnDen.abstractNode == self.room.shortcutData(self.enteringShortCut.Value).destNode && self.abstractCreature.GetData() is FCustom.LizardData lData)
+            if (self.grasps[0]?.grabbed is LizardEgg && self.enteringShortCut != null && self.room.shortcutData(self.enteringShortCut.Value).shortCutType == ShortcutData.Type.CreatureHole && self.abstractCreature.spawnDen.abstractNode == self.room.shortcutData(self.enteringShortCut.Value).destNode && self.abstractCreature.GetData() is FCustom.LizardData lData)
             {
                 PhysicalObject egg = self.grasps[0].grabbed;
                 self.LoseAllGrasps();
+                self.room.RemoveObject(egg);
                 egg.Destroy();
                 self.AI.behavior = LizardAI.Behavior.Idle;
                 lData.egg = null;
@@ -367,7 +372,7 @@ namespace LizardEggs
                 AbstractPhysicalObject.AbstractObjectType abstractObjectType = new AbstractPhysicalObject.AbstractObjectType(array[1]);
                 if (abstractObjectType == Register.LizardEgg)
                 {
-                    int stage = (world.rainCycle.timer < 40 && world.GetAbstractRoom(WorldCoordinate.FromString(array[2])).shelter) ? int.Parse(array[6]) + 1 : int.Parse(array[6]);
+                    int stage = ((world.rainCycle?.timer == null || world.rainCycle.timer < 40) && world.GetAbstractRoom(WorldCoordinate.FromString(array[2])).shelter) ? int.Parse(array[6]) + 1 : int.Parse(array[6]);
                     if (stage >= Options.eggGrowthTime.Value)
                         return SpawnLizard(world, array);
                     return new AbstractLizardEgg(world, WorldCoordinate.FromString(array[2]), EntityID.FromString(array[0]), EntityID.FromString(array[5]), float.Parse(array[4]), FCustom.IntToColor(int.Parse(array[3])), array[7], stage, true)
@@ -399,7 +404,10 @@ namespace LizardEggs
                 if (--val.Item2 == 0)
                     foreach (IDrawable drawable in self.room.drawableObjects)
                         if (drawable is Indicator ind && ind.den == den)
+                        {
                             self.room.RemoveObject(ind);
+                            return;
+                        }
             }
         }
 

@@ -167,9 +167,7 @@ namespace LizardEggs
             }
         }
 
-        public void ThrowByPlayer()
-        {
-        }
+        public void ThrowByPlayer() { }
 
         public int BitesLeft => bites;
         public int FoodPoints => 1 + (int)(AbstractLizardEgg.size / 1.24f);
