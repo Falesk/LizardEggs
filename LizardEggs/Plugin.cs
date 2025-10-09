@@ -3,11 +3,8 @@ using BepInEx.Logging;
 using Mono.Cecil.Cil;
 using MonoMod.Cil;
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using UnityEngine;
-using static LizardEggs.Plugin;
 
 namespace LizardEggs
 {

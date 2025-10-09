@@ -1,7 +1,4 @@
-﻿using MonoMod.Cil;
-using Mono.Cecil.Cil;
-using MoreSlugcats;
-using System;
+﻿using MoreSlugcats;
 using UnityEngine;
 
 namespace LizardEggs
