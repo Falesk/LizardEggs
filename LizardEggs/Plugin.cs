@@ -1,0 +1,147 @@
+﻿using BepInEx;
+using BepInEx.Logging;
+using Mono.Cecil.Cil;
+using MonoMod.Cil;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using UnityEngine;
+using static LizardEggs.Plugin;
+
+namespace LizardEggs
+{
+    [BepInPlugin(ID, Name, Version)]
+    public class Plugin : BaseUnityPlugin
+    {
+        public const string ID = "falesk.lizardeggs";
+        public const string Name = "Lizard Eggs";
+        public const string Version = "1.2.0.1";
+        public bool eggInShelter;
+        public static ManualLogSource logger;
+
+        public void Awake()
+        {
+            try
+            {
+                // Mod Init / Deinit
+                On.RainWorld.OnModsInit += RainWorld_OnModsInit;
+                On.RainWorld.OnModsDisabled += RainWorld_OnModsDisabled;
+                // Other
+                IL.WinState.CycleCompleted += WinState_CycleCompleted;
+                On.SaveState.SessionEnded += SaveState_SessionEnded;
+                On.World.ctor += (orig, self, game, region, name, singleRoomWorld) =>
+                {
+                    orig(self, game, region, name, singleRoomWorld);
+                    FDataMananger.InitDens();
+                };
+                On.Player.SleepUpdate += (orig, self) =>
+                {
+                    orig(self);
+                    if (self.sleepCounter < 0)
+                        eggInShelter = self.room.abstractRoom.shelter && self.room.physicalObjects[1].Exists(obj => obj is LizardEgg);
+                };
+                On.MultiplayerUnlocks.SandboxItemUnlocked += (orig, self, unlockID) =>
+                    unlockID == Register.LizardEggUnlock || orig(self, unlockID);
+                On.MultiplayerUnlocks.SandboxUnlockForSymbolData += (orig, data) =>
+                    (data.itemType == Register.LizardEgg) ? Register.LizardEggUnlock : orig(data);
+                On.MultiplayerUnlocks.SymbolDataForSandboxUnlock += (orig, unlockID) =>
+                (unlockID == Register.LizardEggUnlock) ? new IconSymbol.IconSymbolData(CreatureTemplate.Type.StandardGroundCreature, Register.LizardEgg, 0) : orig(unlockID);
+
+                //debug
+                On.Player.ProcessDebugInputs += Player_ProcessDebugInputs;
+            }
+            catch (Exception e) { Logger.LogError(e); }
+        }
+
+        private void Player_ProcessDebugInputs(On.Player.orig_ProcessDebugInputs orig, Player self)
+        {
+            orig(self);
+            //if (Input.GetKeyDown("="))
+            //{
+            //    Debug.Log(PrintDict(EggsInDen));
+            //}
+        }
+
+        //private string PrintDict(Dictionary<WorldCoordinate, (AbstractCreature, int)> dict)
+        //{
+        //    string text = "";
+        //    foreach (var key in dict.Keys)
+        //    {
+        //        text += $"{key} - ({dict[key].Item1}, {dict[key].Item2})\n";
+        //    }
+        //    return text;
+        //}
+
+        //Mother Passage
+        private void WinState_CycleCompleted(ILContext il)
+        {
+            try
+            {
+                ILCursor c = new ILCursor(il);
+                c.GotoNext(
+                    MoveType.Before,
+                    x => x.MatchLdarg(0),
+                    x => x.MatchLdsfld(typeof(MoreSlugcats.MoreSlugcatsEnums.EndgameID).GetField(nameof(MoreSlugcats.MoreSlugcatsEnums.EndgameID.Mother))),
+                    x => x.MatchLdloc(0),
+                    x => x.MatchLdcI4(0),
+                    x => x.MatchCgt(),
+                    x => x.MatchCallOrCallvirt(typeof(WinState).GetMethod(nameof(WinState.GetTracker))),
+                    x => x.MatchIsinst(typeof(WinState.FloatTracker)),
+                    x => x.MatchStloc(25),
+                    x => x.MatchLdloc(25),
+                    x => x.MatchBrfalse(out _)
+                    );
+                c.MoveAfterLabels();
+                c.Emit(OpCodes.Ldloc_0);
+                c.EmitDelegate<Func<int, int>>(num => (num == 0 && eggInShelter) ? 1 : num);
+                c.Emit(OpCodes.Stloc_0);
+            }
+            catch (Exception e) { Logger.LogError(e); }
+        }
+
+        //Main Hook - initialization
+        private void RainWorld_OnModsInit(On.RainWorld.orig_OnModsInit orig, RainWorld self)
+        {
+            orig(self);
+            logger = Logger;
+            Register.UnregisterValues();
+            Register.RegisterValues();
+            MachineConnector.SetRegisteredOI(ID, new Options());
+            MultiplayerUnlocks.ItemUnlockList.Add(Register.LizardEggUnlock);
+            //FDataMananger.InitLizards(); //babyLizards.txt init - kostyl
+            HooksGeneral.Init();
+            HooksObject.Init();
+            HooksLizard.Init();
+            HooksBL.Init();
+        }
+
+        private void RainWorld_OnModsDisabled(On.RainWorld.orig_OnModsDisabled orig, RainWorld self, ModManager.Mod[] newlyDisabledMods)
+        {
+            orig(self, newlyDisabledMods);
+            if (newlyDisabledMods.Any(mod => mod.id == ID))
+                Register.UnregisterValues();
+        }
+
+        //For babyLizards.txt - kostyl
+        private void SaveState_SessionEnded(On.SaveState.orig_SessionEnded orig, SaveState self, RainWorldGame game, bool survived, bool newMalnourished)
+        {
+            orig(self, game, survived, newMalnourished);
+            File.WriteAllText(FDataMananger.FilePath, string.Empty);
+            for (int i = 0; i < FDataMananger.SavedLizards.Count; i++)
+            {
+                if (FDataMananger.SavedLizards[i].slatedForDeletion || FDataMananger.SavedLizards[i].stage - Options.lizGrowthTime.Value > 0)
+                {
+                    if (survived)
+                    {
+                        FDataMananger.RemoveLizAt(i--);
+                        continue;
+                    }
+                    FDataMananger.SavedLizards[i].slatedForDeletion = false;
+                }
+                else FDataMananger.SavedLizards[i].stage += survived ? 1 : 0;
+                File.AppendAllText(FDataMananger.FilePath, $"{FDataMananger.SavedLizards[i]}\n");
+            }
+        }
+    }
+}
