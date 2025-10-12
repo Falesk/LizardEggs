@@ -4,7 +4,6 @@ using UnityEngine;
 
 namespace LizardEggs
 {
-    //Ну тут вообще работы куча, нужно убрать все lizard
     public static class HooksLizard
     {
         public static void Init()
@@ -18,13 +17,30 @@ namespace LizardEggs
             On.Lizard.Update += Lizard_Update;
             On.Lizard.ctor += Lizard_ctor;
             On.Lizard.CarryObject += Lizard_CarryObject;
-            On.LizardState.ctor += LizardState_ctor;
             //Graphics
             On.LizardGraphics.HeadColor += LizardGraphics_HeadColor;
             On.LizardGraphics.ctor += LizardGraphics_ctor;
             On.LizardCosmetics.SpineSpikes.ctor += SpineSpikes_ctor;
             //Creature
             On.AbstractCreature.ctor += AbstractCreature_ctor1;
+            On.SaveState.AbstractCreatureFromString += SaveState_AbstractCreatureFromString;
+        }
+
+        private static AbstractCreature SaveState_AbstractCreatureFromString(On.SaveState.orig_AbstractCreatureFromString orig, World world, string creatureString, bool onlyInCurrentRegion, WorldCoordinate overrideCoord)
+        {
+            AbstractCreature creature = orig(world, creatureString, onlyInCurrentRegion, overrideCoord);
+            if (creature.state is BabyLizardState babyState)
+            {
+                if (babyState.age >= Options.lizGrowthTime.Value)
+                {
+                    creature.creatureTemplate = StaticWorld.GetCreatureTemplate(babyState.parent);
+                    creature.state = new LizardState(creature);
+                    if (creature.GetData() is FDataMananger.LizardData data)
+                        data.playerIsParent = true;
+                }
+                else babyState.LimbFix();
+            }
+            return creature;
         }
 
         private static void AbstractCreature_ctor1(On.AbstractCreature.orig_ctor orig, AbstractCreature self, World world, CreatureTemplate creatureTemplate, Creature realizedCreature, WorldCoordinate pos, EntityID ID)
@@ -34,60 +50,36 @@ namespace LizardEggs
                 self.state = new BabyLizardState(self);
         }
 
-        //k
         private static void SpineSpikes_ctor(On.LizardCosmetics.SpineSpikes.orig_ctor orig, LizardCosmetics.SpineSpikes self, LizardGraphics lGraphics, int startSprite)
         {
             orig(self, lGraphics, startSprite);
-            if (ModManager.MSC && lGraphics.lizard.Template.type == MoreSlugcatsEnums.CreatureTemplateType.TrainLizard && FDataMananger.SavedLizards.Find(liz => liz.ID == lGraphics.lizard.abstractCreature.ID) != null)
+            if (ModManager.MSC && lGraphics.lizard.Template.type == MoreSlugcatsEnums.CreatureTemplateType.TrainLizard && lGraphics.lizard.State is BabyLizardState)
             {
                 self.sizeRangeMin = Mathf.Lerp(self.sizeRangeMin, 1.1f, 0.1f);
                 self.sizeRangeMax = Mathf.Lerp(self.sizeRangeMax, 1.1f, 0.4f);
             }
         }
-        //kk
-        private static void LizardState_ctor(On.LizardState.orig_ctor orig, LizardState self, AbstractCreature creature)
-        {
-            FDataMananger.SavedLizard sliz = FDataMananger.SavedLizards.Find(liz => liz.ID == creature.ID);
-            if (sliz == null)
-            {
-                orig(self, creature);
-                return;
-            }
-            if (sliz.stage - Options.lizGrowthTime.Value >= 0)
-            {
-                sliz.slatedForDeletion = true;
-                creature.creatureTemplate = StaticWorld.GetCreatureTemplate(sliz.parent);
-            }
-            else creature.creatureTemplate.type = sliz.parent;
-            orig(self, creature);
-            if (creature.creatureTemplate == StaticWorld.GetCreatureTemplate(Register.BabyLizard))
-                self.creature.creatureTemplate.type = Register.BabyLizard;
-        }
-        //k
+
         private static void LizardGraphics_ctor(On.LizardGraphics.orig_ctor orig, LizardGraphics self, PhysicalObject ow)
         {
-            FDataMananger.SavedLizard sliz = FDataMananger.SavedLizards.Find(liz => liz.ID == ow.abstractPhysicalObject.ID);
-            if (sliz == null || (sliz != null && (ow as Lizard).Template == StaticWorld.GetCreatureTemplate(sliz.parent)))
+            if ((ow as Lizard).State is BabyLizardState state)
             {
+                (ow as Lizard).Template.type = state.parent;
                 orig(self, ow);
-                return;
+                (ow as Lizard).Template.type = Register.BabyLizard;
             }
-            (ow as Lizard).Template.type = sliz.parent;
-            orig(self, ow);
-            (ow as Lizard).Template.type = Register.BabyLizard;
+            else orig(self, ow);
         }
-        //k
+
         private static void LizardAI_ctor(On.LizardAI.orig_ctor orig, LizardAI self, AbstractCreature creature, World world)
         {
-            FDataMananger.SavedLizard sliz = FDataMananger.SavedLizards.Find(liz => liz.ID == creature.ID);
-            if (sliz == null || (sliz != null && creature.creatureTemplate == StaticWorld.GetCreatureTemplate(sliz.parent)))
+            if (creature.state is BabyLizardState state)
             {
+                creature.creatureTemplate.type = state.parent;
                 orig(self, creature, world);
-                return;
+                creature.creatureTemplate.type = Register.BabyLizard;
             }
-            creature.creatureTemplate.type = sliz.parent;
-            orig(self, creature, world);
-            creature.creatureTemplate.type = Register.BabyLizard;
+            else orig(self, creature, world);
         }
 
         private static YellowAI.YellowPack YellowAI_Pack(On.YellowAI.orig_Pack orig, YellowAI self, Creature liz)
@@ -106,7 +98,7 @@ namespace LizardEggs
             }
             return orig(self);
         }
-        //probably okay
+
         private static void LizardAI_Update(On.LizardAI.orig_Update orig, LizardAI self)
         {
             orig(self);
@@ -129,22 +121,20 @@ namespace LizardEggs
             }
             orig(self, eu);
         }
-        //kk
+
         private static void Lizard_ctor(On.Lizard.orig_ctor orig, Lizard self, AbstractCreature abstractCreature, World world)
         {
-            FDataMananger.SavedLizard sliz = FDataMananger.SavedLizards.Find(liz => liz.ID == abstractCreature.ID);
-            if (sliz == null || (sliz != null && abstractCreature.creatureTemplate == StaticWorld.GetCreatureTemplate(sliz.parent)))
+            if (abstractCreature.state is BabyLizardState state)
             {
+                abstractCreature.creatureTemplate.type = state.parent;
                 orig(self, abstractCreature, world);
-                return;
+                abstractCreature.creatureTemplate.type = Register.BabyLizard;
+                if (self.effectColor == (abstractCreature.creatureTemplate.breedParameters as LizardBreedParams).standardColor)
+                    self.effectColor = (StaticWorld.GetCreatureTemplate(state.parent).breedParameters as LizardBreedParams).standardColor;
             }
-            abstractCreature.creatureTemplate.type = sliz.parent;
-            orig(self, abstractCreature, world);
-            abstractCreature.creatureTemplate.type = Register.BabyLizard;
-            if (self.effectColor == (abstractCreature.creatureTemplate.breedParameters as LizardBreedParams).standardColor)
-                self.effectColor = (StaticWorld.GetCreatureTemplate(sliz.parent).breedParameters as LizardBreedParams).standardColor;
+            else orig(self, abstractCreature, world);
         }
-        //prob ok
+
         private static Color LizardGraphics_HeadColor(On.LizardGraphics.orig_HeadColor orig, LizardGraphics self, float timeStacker)
         {
             try
@@ -155,12 +145,12 @@ namespace LizardEggs
             catch { }
             return orig(self, timeStacker);
         }
-        //kkk
+
         private static void Lizard_Update(On.Lizard.orig_Update orig, Lizard self, bool eu)
         {
             if (self.abstractCreature.InDen)
                 return;
-            if (FDataMananger.SavedLizards.Find(liz => liz.ID == self.abstractCreature.ID) is FDataMananger.SavedLizard sliz)
+            if (self.State is BabyLizardState || (self.abstractCreature.GetData() is FDataMananger.LizardData lisData && lisData.playerIsParent))
             {
                 if (self.AI.friendTracker.friend == null && self.room.PlayersInRoom.Count > 0 && self.room.game.FirstAlivePlayer.realizedCreature is Player player && player != null && self.Consious)
                 {
@@ -171,13 +161,12 @@ namespace LizardEggs
                     self.AI.friendTracker.friend = player;
                     self.AI.friendTracker.friendRel = relationship;
                 }
-                sliz.slatedForDeletion = !self.room.abstractRoom.shelter && self.State.dead;
             }
             if ((Options.tamedAggressiveness.Value || !(self.AI.friendTracker.friend is Player)) && self.abstractCreature.GetData() is FDataMananger.LizardData data)
             {
                 foreach (PhysicalObject obj in self.room.physicalObjects[1])
                 {
-                    if (!data.sawPlayerWithEgg && obj is Player player && self.AI.VisualContact(player.mainBodyChunk) && player.grasps[0] != null && player.grasps[0].grabbed is LizardEgg && (player.grasps[0].grabbed as LizardEgg).AbstractLizardEgg.parentID == self.abstractCreature.ID)
+                    if (!data.sawPlayerWithEgg && obj is Player player && self.AI.VisualContact(player.mainBodyChunk) && player.grasps[0]?.grabbed is LizardEgg egg && egg.AbstractLizardEgg.parentID == self.abstractCreature.ID)
                     {
                         data.sawPlayerWithEgg = true;
                         self.AI.LizardPlayerRelationChange(-Options.lizAggressiveness.Value, player.abstractCreature);
@@ -191,10 +180,10 @@ namespace LizardEggs
                             self.bubbleIntensity = 0.3f;
                         }
                     }
-                    else if (obj is LizardEgg egg && egg.AbstractLizardEgg.parentID == self.abstractCreature.ID)
+                    else if (obj is LizardEgg eggg && eggg.AbstractLizardEgg.parentID == self.abstractCreature.ID)
                     {
                         if (data.egg == null)
-                            data.egg = egg.abstractPhysicalObject as AbstractLizardEgg;
+                            data.egg = eggg.abstractPhysicalObject as AbstractLizardEgg;
                         if ((self.graphicsModule as LizardGraphics)?.lightSource != null)
                             (self.graphicsModule as LizardGraphics).lightSource.alpha = (data.egg.realizedObject as LizardEgg).Luminance;
                         if (self.grasps[0]?.grabbed == null && Vector2.Distance(self.firstChunk.pos, data.egg.realizedObject.firstChunk.pos) < 20f && self.Consious)

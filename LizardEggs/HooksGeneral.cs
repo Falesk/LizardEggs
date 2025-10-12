@@ -4,7 +4,6 @@ using MoreSlugcats;
 using RWCustom;
 using System;
 using UnityEngine;
-using static LizardEggs.Plugin;
 
 namespace LizardEggs
 {
@@ -44,10 +43,9 @@ namespace LizardEggs
                         FDataMananger.AddToDens(abstr, self.playerCharacter);
                 });
             }
-            catch (Exception e) { logger.LogError(e); }
+            catch (Exception e) { Plugin.logger.LogError(e); }
         }
 
-        //ok
         private static void RoomCamera_ChangeRoom(On.RoomCamera.orig_ChangeRoom orig, RoomCamera self, Room newRoom, int cameraPosition)
         {
             orig(self, newRoom, cameraPosition);
@@ -56,7 +54,6 @@ namespace LizardEggs
                     newRoom.AddObject(new Indicator(den.Key, self.room));
         }
 
-        //Spawn egg or lizard
         private static AbstractPhysicalObject SaveState_AbstractPhysicalObjectFromString(On.SaveState.orig_AbstractPhysicalObjectFromString orig, World world, string objString)
         {
             try
@@ -94,7 +91,7 @@ namespace LizardEggs
                     self.room.game.GetNewID(), liz.abstractCreature.ID,
                     size,
                     liz.effectColor,
-                    liz.Template.type.value,
+                    liz.Template.name,
                     self.room.world.regionState.saveState.cycleNumber);
                 self.abstractCreature.Room.AddEntity(abstractEgg);
                 abstractEgg.RealizeInRoom();
@@ -107,22 +104,23 @@ namespace LizardEggs
 
         private static AbstractCreature SpawnLizard(World world, string[] array)
         {
-            FDataMananger.InitLizTypes();
             string parentType = array[7];
             WorldCoordinate pos = WorldCoordinate.FromString(array[2]);
 
-            UnityEngine.Random.State state = UnityEngine.Random.state;
+            UnityEngine.Random.State rstate = UnityEngine.Random.state;
             UnityEngine.Random.InitState(EntityID.FromString(array[0]).RandomSeed);
             EntityID lizID = world.game.GetNewID(EntityID.FromString(array[5]).spawner);
 
-            if (ModManager.MSC && Options.trLizOpport.Value && parentType == "RedLizard" && UnityEngine.Random.value < 0.1f)
-                parentType = MoreSlugcatsEnums.CreatureTemplateType.TrainLizard.value;
-            parentType = (parentType == "") ? FDataMananger.lizTypes[UnityEngine.Random.Range(0, FDataMananger.lizTypes.Count)].type.value : parentType;
-            UnityEngine.Random.state = state;
+            if (ModManager.MSC && Options.trLizOpport.Value && parentType == StaticWorld.GetCreatureTemplate(CreatureTemplate.Type.RedLizard).name && UnityEngine.Random.value < 0.1f)
+                parentType = StaticWorld.GetCreatureTemplate(MoreSlugcatsEnums.CreatureTemplateType.TrainLizard).name;
+            parentType = string.IsNullOrEmpty(parentType) ? FDataMananger.RandomLizard() : parentType;
+            UnityEngine.Random.state = rstate;
 
-            if (Options.youngLiz.Value && FDataMananger.SavedLizards.Find(liz => liz.ID == lizID) == null)
-                FDataMananger.SavedLizards.Add(new FDataMananger.SavedLizard(lizID, new CreatureTemplate.Type(parentType), 0));
-            return new AbstractCreature(world, StaticWorld.GetCreatureTemplate(Register.BabyLizard), null, pos, lizID);
+            AbstractCreature abstr = new AbstractCreature(world, StaticWorld.GetCreatureTemplate(Register.BabyLizard), null, pos, lizID);
+            (abstr.state as BabyLizardState).parent = StaticWorld.GetCreatureTemplate(parentType).type;
+            (abstr.state as BabyLizardState).hexColor = uint.Parse(array[3]);
+            (abstr.state as BabyLizardState).LimbFix();
+            return abstr;
         }
     }
 }

@@ -7,14 +7,18 @@ namespace LizardEggs
         public AbstractLizardEgg(AbstractPhysicalObject abstrObj) : base(abstrObj.world, Register.LizardEgg, null, abstrObj.pos, abstrObj.ID)
         {
             parentID = abstrObj.world.game.GetNewID();
-            birthday = abstrObj.world.regionState.saveState.cycleNumber;
-            parentType = FDataMananger.lizTypes[Random.Range(0, FDataMananger.lizTypes.Count)].type.value;
+            if (world.game.session is StoryGameSession session)
+                birthday = session.saveState.cycleNumber;
+            else birthday = 0;
+            parentType = FDataMananger.RandomLizard();
             color = (StaticWorld.GetCreatureTemplate(parentType).breedParameters as LizardBreedParams).standardColor;
+            if (color == Color.black) color += 0.01f * Color.white;
             size = Random.Range(0.7f, 2f);
         }
         public AbstractLizardEgg(World world, WorldCoordinate pos, EntityID ID, EntityID parentID, float size, Color color, string parentType, int birthday) : base(world, Register.LizardEgg, null, pos, ID)
         {
             this.color = color;
+            if (color == Color.black) this.color += 0.01f * Color.white;
             this.parentID = parentID;
             this.birthday = birthday;
             this.parentType = parentType;

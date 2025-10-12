@@ -3,7 +3,7 @@ using BepInEx.Logging;
 using Mono.Cecil.Cil;
 using MonoMod.Cil;
 using System;
-using System.IO;
+using UnityEngine;
 using System.Linq;
 
 namespace LizardEggs
@@ -26,7 +26,6 @@ namespace LizardEggs
                 On.RainWorld.OnModsDisabled += RainWorld_OnModsDisabled;
                 // Other
                 IL.WinState.CycleCompleted += WinState_CycleCompleted;
-                On.SaveState.SessionEnded += SaveState_SessionEnded;
                 On.World.ctor += (orig, self, game, region, name, singleRoomWorld) =>
                 {
                     orig(self, game, region, name, singleRoomWorld);
@@ -54,21 +53,23 @@ namespace LizardEggs
         private void Player_ProcessDebugInputs(On.Player.orig_ProcessDebugInputs orig, Player self)
         {
             orig(self);
-            //if (Input.GetKeyDown("="))
-            //{
-            //    Debug.Log(PrintDict(EggsInDen));
-            //}
+            if (Input.GetKeyDown("="))
+            {
+                foreach (var crit in self.room.abstractRoom.creatures)
+                {
+                    //if (crit.creatureTemplate.type == Register.BabyLizard)
+                    //{
+                    //    var state = crit.state as BabyLizardState;
+                    //    Debug.Log($"BabyLizard - {crit.ID} - age: {state.age} - parent: {state.parent}");
+                    //}
+                    if (crit.realizedCreature is Lizard liz)
+                    {
+                        Debug.Log(liz.AI.friendTracker.friend);
+                        Debug.Log(liz.abstractCreature.state.socialMemory.GetOrInitiateRelationship(self.abstractCreature.ID));
+                    }
+                }
+            }
         }
-
-        //private string PrintDict(Dictionary<WorldCoordinate, (AbstractCreature, int)> dict)
-        //{
-        //    string text = "";
-        //    foreach (var key in dict.Keys)
-        //    {
-        //        text += $"{key} - ({dict[key].Item1}, {dict[key].Item2})\n";
-        //    }
-        //    return text;
-        //}
 
         //Mother Passage
         private void WinState_CycleCompleted(ILContext il)
@@ -106,7 +107,6 @@ namespace LizardEggs
             Register.RegisterValues();
             MachineConnector.SetRegisteredOI(ID, new Options());
             MultiplayerUnlocks.ItemUnlockList.Add(Register.LizardEggUnlock);
-            //FDataMananger.InitLizards(); //babyLizards.txt init - kostyl
             HooksGeneral.Init();
             HooksObject.Init();
             HooksLizard.Init();
@@ -118,27 +118,6 @@ namespace LizardEggs
             orig(self, newlyDisabledMods);
             if (newlyDisabledMods.Any(mod => mod.id == ID))
                 Register.UnregisterValues();
-        }
-
-        //For babyLizards.txt - kostyl
-        private void SaveState_SessionEnded(On.SaveState.orig_SessionEnded orig, SaveState self, RainWorldGame game, bool survived, bool newMalnourished)
-        {
-            orig(self, game, survived, newMalnourished);
-            File.WriteAllText(FDataMananger.FilePath, string.Empty);
-            for (int i = 0; i < FDataMananger.SavedLizards.Count; i++)
-            {
-                if (FDataMananger.SavedLizards[i].slatedForDeletion || FDataMananger.SavedLizards[i].stage - Options.lizGrowthTime.Value > 0)
-                {
-                    if (survived)
-                    {
-                        FDataMananger.RemoveLizAt(i--);
-                        continue;
-                    }
-                    FDataMananger.SavedLizards[i].slatedForDeletion = false;
-                }
-                else FDataMananger.SavedLizards[i].stage += survived ? 1 : 0;
-                File.AppendAllText(FDataMananger.FilePath, $"{FDataMananger.SavedLizards[i]}\n");
-            }
         }
     }
 }

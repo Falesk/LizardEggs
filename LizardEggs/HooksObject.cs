@@ -38,7 +38,10 @@ namespace LizardEggs
         private static Color ItemSymbol_ColorForItem(On.ItemSymbol.orig_ColorForItem orig, AbstractPhysicalObject.AbstractObjectType itemType, int intData)
         {
             if (itemType == Register.LizardEgg)
-                return Color.Lerp(FCustom.HEX2ARGB((uint)intData), Color.black, 0.4f);
+            {
+                Color color = (intData == 0) ? Color.green : FCustom.HEX2ARGB((uint)intData);
+                return Color.Lerp(color, Color.black, 0.4f);
+            }
             return orig(itemType, intData);
         }
 
@@ -59,7 +62,6 @@ namespace LizardEggs
             }
         }
 
-        //IL maybe
         private static void SlugNPCAI_AteFood(On.MoreSlugcats.SlugNPCAI.orig_AteFood orig, SlugNPCAI self, PhysicalObject food)
         {
             if (food is LizardEgg && Options.edibleForPups.Value)

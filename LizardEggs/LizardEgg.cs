@@ -46,13 +46,13 @@ namespace LizardEggs
                 lastShaking = Random.Range(120 / (int)(3 * AbsStage), 400 / (int)(3 * AbsStage));
             }
 
-            if (room.abstractRoom.creatures.Any(abstr => abstr.ID == AbstractLizardEgg.parentID) && AbstractLizardEgg.birthday == 0)
+            if (room.abstractRoom.creatures.Any(abstr => abstr.ID == AbstractLizardEgg.parentID) && abstractPhysicalObject.world.regionState.saveState.cycleNumber - AbstractLizardEgg.birthday == 0)
             {
                 lightIntensity += 0.025f;
                 if (lightIntensity > 1f)
                     lightIntensity = -1;
             }
-            else if (AbstractLizardEgg.birthday == Options.eggGrowthTime.Value - 1 && AbstractLizardEgg.birthday != 0)
+            else if (abstractPhysicalObject.world.regionState.saveState.cycleNumber - AbstractLizardEgg.birthday == Options.eggGrowthTime.Value - 1 && abstractPhysicalObject.world.regionState.saveState.cycleNumber - AbstractLizardEgg.birthday != 0)
             {
                 lightIntensity += 0.01f;
                 if (lightIntensity > 1f)
@@ -166,11 +166,10 @@ namespace LizardEggs
         {
             if (abstractPhysicalObject.world.game.IsArenaSession && weapon is Spear)
             {
-                FDataMananger.InitLizTypes();
                 EntityID entityID = room.world.game.GetNewID(abstractPhysicalObject.ID.spawner);
-                CreatureTemplate.Type type = FDataMananger.lizTypes[Random.Range(0, FDataMananger.lizTypes.Count)].type;
-                FDataMananger.SavedLizards.Add(new FDataMananger.SavedLizard(entityID, type, Options.lizGrowthTime.Value - 1) { slatedForDeletion = true });
                 AbstractCreature abstrLiz = new AbstractCreature(room.world, StaticWorld.GetCreatureTemplate(Register.BabyLizard), null, abstractPhysicalObject.pos, entityID);
+                (abstrLiz.state as BabyLizardState).parent = StaticWorld.GetCreatureTemplate(FDataMananger.RandomLizard()).type;
+                (abstrLiz.state as BabyLizardState).LimbFix();
                 room.abstractRoom.AddEntity(abstrLiz);
                 abstrLiz.RealizeInRoom();
                 Destroy();
@@ -184,7 +183,7 @@ namespace LizardEggs
         public bool Edible => true;
         public bool AutomaticPickUp => true;
         public float Luminance => Mathf.Pow(Mathf.Sin(lightIntensity * Mathf.PI), 2);
-        public float AbsStage => Mathf.Clamp01((float)AbstractLizardEgg.birthday / Options.eggGrowthTime.Value);
+        public float AbsStage => Mathf.Clamp01((float)(abstractPhysicalObject.world.regionState.saveState.cycleNumber - AbstractLizardEgg.birthday) / Options.eggGrowthTime.Value);
         public Vector2 rotation;
         public Vector2 lastRotation;
         public float darkness;
