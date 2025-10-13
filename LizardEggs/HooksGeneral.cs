@@ -39,8 +39,8 @@ namespace LizardEggs
                 {
                     if (ModManager.MSC && self.game.rainWorld.safariMode)
                         return;
-                    if (abstr.creatureTemplate.IsLizard)
-                        FDataMananger.AddToDens(abstr, self.playerCharacter);
+                    if (abstr.creatureTemplate.IsLizard && !abstr.preCycle)
+                        FDataManager.AddToDens(abstr, self.playerCharacter);
                 });
             }
             catch (Exception e) { Plugin.logger.LogError(e); }
@@ -49,7 +49,7 @@ namespace LizardEggs
         private static void RoomCamera_ChangeRoom(On.RoomCamera.orig_ChangeRoom orig, RoomCamera self, Room newRoom, int cameraPosition)
         {
             orig(self, newRoom, cameraPosition);
-            foreach (var den in FDataMananger.Dens)
+            foreach (var den in FDataManager.Dens)
                 if (newRoom.abstractRoom.index == den.Key.room && den.Value.Item2 > 0)
                     newRoom.AddObject(new Indicator(den.Key, self.room));
         }
@@ -68,7 +68,7 @@ namespace LizardEggs
                     { unrecognizedAttributes = SaveUtils.PopulateUnrecognizedStringAttrs(array, 8) };
                 }
             }
-            catch { }
+            catch { Plugin.logger.LogWarning($"Exception in SaveState.AbstractPhysicalObjectFromString"); }
             return orig(world, objString);
         }
 
@@ -81,7 +81,7 @@ namespace LizardEggs
             WorldCoordinate den = self.room.GetWorldCoordinate(tile);
             den.abstractNode = FCustom.GetAbstractNode(den, self.room);
             den.Tile = new IntVector2(-1, -1);
-            if (FDataMananger.Dens.TryGetValue(den, out var val) && val.Item2 > 0 && self.FreeHand() != -1 && ((self.input[0].pckp && Options.takeButton.Value == KeyCode.None) || Input.GetKey(Options.takeButton.Value)))
+            if (FDataManager.Dens.TryGetValue(den, out var val) && val.Item2 > 0 && self.FreeHand() != -1 && ((self.input[0].pckp && Options.takeButton.Value == KeyCode.None) || Input.GetKey(Options.takeButton.Value)))
             {
                 Lizard liz = (val.Item1?.realizedCreature as Lizard) ?? new Lizard(val.Item1, self.room.world);
                 float size = Mathf.Sqrt(0.5f * liz.lizardParams.bodyMass);
@@ -96,7 +96,7 @@ namespace LizardEggs
                 self.abstractCreature.Room.AddEntity(abstractEgg);
                 abstractEgg.RealizeInRoom();
                 self.SlugcatGrab(abstractEgg.realizedObject, self.FreeHand());
-                FDataMananger.ChangeDensValue(den, -1);
+                FDataManager.ChangeDensValue(den, -1);
                 if (--val.Item2 == 0 && self.room.drawableObjects.Find(x => x is Indicator i && i.den == den) is Indicator ind)
                     ind.Destroy();
             }
@@ -113,7 +113,7 @@ namespace LizardEggs
 
             if (ModManager.MSC && Options.trLizOpport.Value && parentType == StaticWorld.GetCreatureTemplate(CreatureTemplate.Type.RedLizard).name && UnityEngine.Random.value < 0.1f)
                 parentType = StaticWorld.GetCreatureTemplate(MoreSlugcatsEnums.CreatureTemplateType.TrainLizard).name;
-            parentType = string.IsNullOrEmpty(parentType) ? FDataMananger.RandomLizard() : parentType;
+            parentType = string.IsNullOrEmpty(parentType) ? FDataManager.RandomLizard() : parentType;
             UnityEngine.Random.state = rstate;
 
             AbstractCreature abstr = new AbstractCreature(world, StaticWorld.GetCreatureTemplate(Register.BabyLizard), null, pos, lizID);

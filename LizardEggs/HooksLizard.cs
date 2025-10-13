@@ -21,33 +21,6 @@ namespace LizardEggs
             On.LizardGraphics.HeadColor += LizardGraphics_HeadColor;
             On.LizardGraphics.ctor += LizardGraphics_ctor;
             On.LizardCosmetics.SpineSpikes.ctor += SpineSpikes_ctor;
-            //Creature
-            On.AbstractCreature.ctor += AbstractCreature_ctor1;
-            On.SaveState.AbstractCreatureFromString += SaveState_AbstractCreatureFromString;
-        }
-
-        private static AbstractCreature SaveState_AbstractCreatureFromString(On.SaveState.orig_AbstractCreatureFromString orig, World world, string creatureString, bool onlyInCurrentRegion, WorldCoordinate overrideCoord)
-        {
-            AbstractCreature creature = orig(world, creatureString, onlyInCurrentRegion, overrideCoord);
-            if (creature.state is BabyLizardState babyState)
-            {
-                if (babyState.age >= Options.lizGrowthTime.Value)
-                {
-                    creature.creatureTemplate = StaticWorld.GetCreatureTemplate(babyState.parent);
-                    creature.state = new LizardState(creature);
-                    if (creature.GetData() is FDataMananger.LizardData data)
-                        data.playerIsParent = true;
-                }
-                else babyState.LimbFix();
-            }
-            return creature;
-        }
-
-        private static void AbstractCreature_ctor1(On.AbstractCreature.orig_ctor orig, AbstractCreature self, World world, CreatureTemplate creatureTemplate, Creature realizedCreature, WorldCoordinate pos, EntityID ID)
-        {
-            orig(self, world, creatureTemplate, realizedCreature, pos, ID);
-            if (creatureTemplate.type == Register.BabyLizard)
-                self.state = new BabyLizardState(self);
         }
 
         private static void SpineSpikes_ctor(On.LizardCosmetics.SpineSpikes.orig_ctor orig, LizardCosmetics.SpineSpikes self, LizardGraphics lGraphics, int startSprite)
@@ -80,6 +53,8 @@ namespace LizardEggs
                 creature.creatureTemplate.type = Register.BabyLizard;
             }
             else orig(self, creature, world);
+            if ((creature.state is BabyLizardState || (self.lizard?.abstractCreature.GetData() is FDataManager.LizardData data && data.playerIsParent)) && self.denFinder.denPosition == null && creature.Room.shelter)
+                self.denFinder.denPosition = new WorldCoordinate(creature.Room.index, -1, -1, -1);
         }
 
         private static YellowAI.YellowPack YellowAI_Pack(On.YellowAI.orig_Pack orig, YellowAI self, Creature liz)
@@ -102,7 +77,7 @@ namespace LizardEggs
         private static void LizardAI_Update(On.LizardAI.orig_Update orig, LizardAI self)
         {
             orig(self);
-            if (self.creature.GetData() is FDataMananger.LizardData data && data.egg != null && self.behavior != LizardAI.Behavior.ReturnPrey && self.pathFinder.CoordinateReachableAndGetbackable(data.egg.pos))
+            if (self.creature.GetData() is FDataManager.LizardData data && data.egg != null && self.behavior != LizardAI.Behavior.ReturnPrey && self.pathFinder.CoordinateReachableAndGetbackable(data.egg.pos))
             {
                 self.creature.abstractAI.SetDestination(data.egg.pos);
                 self.runSpeed = Mathf.Lerp(self.runSpeed, 1.2f, 0.75f);
@@ -120,6 +95,26 @@ namespace LizardEggs
                 return;
             }
             orig(self, eu);
+            if ((self.State is BabyLizardState || (self.abstractCreature.GetData() is FDataManager.LizardData data && data.playerIsParent)) && self.grasps[0]?.grabbed is Creature crt)
+            {
+                if (crt.State.alive && Random.value < 1 / 200f)
+                    crt.Die();
+                else if (Random.value < 1 / 200f)
+                {
+                    for (int i = 0; i < crt.bodyChunks.Length; i++)
+                        crt.bodyChunks[i].rad /= 2;
+                    self.room.PlaySound(SoundID.Slugcat_Bite_Slime_Mold, self.firstChunk.pos, 2.5f, 0.5f);
+                    for (int i = 0; i < 4 + Random.Range(0, 5); i++)
+                        self.room.AddObject(new WaterDrip(self.firstChunk.pos, -self.firstChunk.vel * Random.value * 0.5f + Custom.DegToVec(360f * Random.value) * self.firstChunk.vel.magnitude * Random.value * 0.5f, false));
+                    if (Random.value < 1 / 3f)
+                    {
+                        crt.Destroy();
+                        self.LoseAllGrasps();
+                        for (int i = 0; i < 4 + Random.Range(0, 5); i++)
+                            self.room.AddObject(new WaterDrip(self.firstChunk.pos, -self.firstChunk.vel * Random.value * 0.5f + Custom.DegToVec(360f * Random.value) * self.firstChunk.vel.magnitude * Random.value * 0.5f, false));
+                    }
+                }
+            }
         }
 
         private static void Lizard_ctor(On.Lizard.orig_ctor orig, Lizard self, AbstractCreature abstractCreature, World world)
@@ -137,12 +132,8 @@ namespace LizardEggs
 
         private static Color LizardGraphics_HeadColor(On.LizardGraphics.orig_HeadColor orig, LizardGraphics self, float timeStacker)
         {
-            try
-            {
-                if (self.lizard != null && self.lizard.abstractCreature.GetData() is FDataMananger.LizardData data && data.egg != null && data.egg.Room == self.lizard.room.abstractRoom && data.egg.realizedObject != null && self.lizard.Consious)
-                    return Color.Lerp(self.HeadColor1, self.HeadColor2, (data.egg.realizedObject as LizardEgg).Luminance);
-            }
-            catch { }
+            if (self.lizard != null && self.lizard.abstractCreature.GetData() is FDataManager.LizardData data && data.egg != null && data.egg.Room == self.lizard.room?.abstractRoom && data.egg.realizedObject != null && self.lizard.Consious)
+                return Color.Lerp(self.HeadColor1, self.HeadColor2, (data.egg.realizedObject as LizardEgg).Luminance);
             return orig(self, timeStacker);
         }
 
@@ -150,19 +141,29 @@ namespace LizardEggs
         {
             if (self.abstractCreature.InDen)
                 return;
-            if (self.State is BabyLizardState || (self.abstractCreature.GetData() is FDataMananger.LizardData lisData && lisData.playerIsParent))
+            Lizard_Update_Relationships(self);
+            Lizard_Update_EggDefence(self, eu);
+            Lizard_Update_ReturningEgg(self);
+            orig(self, eu);
+        }
+
+        private static void Lizard_Update_Relationships(Lizard self)
+        {
+            bool friendFlag = self.State is BabyLizardState || (self.abstractCreature.GetData() is FDataManager.LizardData lisData && lisData.playerIsParent);
+            if (friendFlag && self.AI.friendTracker.friend == null && self.room.PlayersInRoom.Count > 0 && self.room.game.FirstAlivePlayer.realizedCreature is Player player && player != null && self.Consious)
             {
-                if (self.AI.friendTracker.friend == null && self.room.PlayersInRoom.Count > 0 && self.room.game.FirstAlivePlayer.realizedCreature is Player player && player != null && self.Consious)
-                {
-                    SocialMemory.Relationship relationship = self.abstractCreature.state.socialMemory.GetOrInitiateRelationship(player.abstractCreature.ID);
-                    relationship.InfluenceKnow(Mathf.Abs(0.85f) * 0.25f);
-                    relationship.tempLike = 1f;
-                    relationship.like = 1f;
-                    self.AI.friendTracker.friend = player;
-                    self.AI.friendTracker.friendRel = relationship;
-                }
+                SocialMemory.Relationship relationship = self.abstractCreature.state.socialMemory.GetOrInitiateRelationship(player.abstractCreature.ID);
+                relationship.InfluenceKnow(Mathf.Abs(0.85f) * 0.25f);
+                relationship.tempLike = 1f;
+                relationship.like = 1f;
+                self.AI.friendTracker.friend = player;
+                self.AI.friendTracker.friendRel = relationship;
             }
-            if ((Options.tamedAggressiveness.Value || !(self.AI.friendTracker.friend is Player)) && self.abstractCreature.GetData() is FDataMananger.LizardData data)
+        }
+
+        private static void Lizard_Update_EggDefence(Lizard self, bool eu)
+        {
+            if ((Options.tamedAggressiveness.Value || !(self.AI.friendTracker.friend is Player)) && self.abstractCreature.GetData() is FDataManager.LizardData data)
             {
                 foreach (PhysicalObject obj in self.room.physicalObjects[1])
                 {
@@ -195,21 +196,23 @@ namespace LizardEggs
                     }
                 }
             }
-            if (self.grasps[0]?.grabbed is LizardEgg && self.enteringShortCut != null && self.room.shortcutData(self.enteringShortCut.Value).shortCutType == ShortcutData.Type.CreatureHole && self.abstractCreature.spawnDen.abstractNode == self.room.shortcutData(self.enteringShortCut.Value).destNode && self.abstractCreature.GetData() is FDataMananger.LizardData lData)
+        }
+
+        private static void Lizard_Update_ReturningEgg(Lizard self)
+        {
+            if (self.grasps[0]?.grabbed is LizardEgg egg && self.enteringShortCut != null && self.room.shortcutData(self.enteringShortCut.Value).shortCutType == ShortcutData.Type.CreatureHole && self.abstractCreature.spawnDen.abstractNode == self.room.shortcutData(self.enteringShortCut.Value).destNode && self.abstractCreature.GetData() is FDataManager.LizardData data)
             {
-                PhysicalObject egg = self.grasps[0].grabbed;
                 self.LoseAllGrasps();
                 self.room.RemoveObject(egg);
                 egg.Destroy();
                 self.AI.behavior = LizardAI.Behavior.Idle;
-                lData.egg = null;
-                if (FDataMananger.Dens.ContainsKey(self.abstractCreature.spawnDen))
+                data.egg = null;
+                if (FDataManager.Dens.ContainsKey(self.abstractCreature.spawnDen))
                 {
-                    FDataMananger.ChangeDensValue(self.abstractCreature.spawnDen, 1);
+                    FDataManager.ChangeDensValue(self.abstractCreature.spawnDen, 1);
                     self.room.AddObject(new Indicator(self.abstractCreature.spawnDen, self.room));
                 }
             }
-            orig(self, eu);
         }
     }
 }

@@ -8,7 +8,7 @@
 
         public BabyLizardState(AbstractCreature creature) : base(creature)
         {
-            parent = StaticWorld.GetCreatureTemplate(FDataMananger.RandomLizard()).type;
+            parent = StaticWorld.GetCreatureTemplate(FDataManager.RandomLizard()).type;
             age = 0;
             hexColor = 0;
             LimbFix();
@@ -39,13 +39,16 @@
                     switch (text)
                     {
                         case "Parent":
-                            parent = StaticWorld.GetCreatureTemplate(arr[1]).type;
+                            if (StaticWorld.GetCreatureTemplate(arr[1]) != null)
+                                parent = StaticWorld.GetCreatureTemplate(arr[1]).type;
                             break;
                         case "Age":
-                            age = int.Parse(arr[1]);
+                            if (int.TryParse(arr[1], out int val))
+                                age = val;
                             break;
                         case "HexColor":
-                            hexColor = uint.Parse(arr[1]);
+                            if (uint.TryParse(arr[1], out uint hex))
+                                hexColor = hex;
                             break;
                     }
                 }

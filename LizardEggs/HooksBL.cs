@@ -9,49 +9,52 @@ namespace LizardEggs
     {
         public static void Init()
         {
+            //Template
             On.StaticWorld.InitCustomTemplates += StaticWorld_InitCustomTemplates;
             On.StaticWorld.InitStaticWorldRelationships += StaticWorld_InitStaticWorldRelationships;
-            On.WorldLoader.CreatureTypeFromString += WorldLoader_CreatureTypeFromString;
-            On.CreatureTemplate.ctor_Type_CreatureTemplate_List1_List1_Relationship += CreatureTemplate_ctor_Type_CreatureTemplate_List1_List1_Relationship;
-            On.CreatureSymbol.ColorOfCreature += CreatureSymbol_ColorOfCreature;
-            On.CreatureSymbol.SpriteNameOfCreature += CreatureSymbol_SpriteNameOfCreature;
-            On.CreatureSymbol.SymbolDataFromCreature += CreatureSymbol_SymbolDataFromCreature;
             On.LizardBreeds.BreedTemplate_Type_CreatureTemplate_CreatureTemplate_CreatureTemplate_CreatureTemplate += LizardBreeds_BreedTemplate_Type_CreatureTemplate_CreatureTemplate_CreatureTemplate_CreatureTemplate;
+            //Creature icon
+            On.CreatureSymbol.ColorOfCreature += (orig, iconData) => iconData.critType == Register.BabyLizard ? FCustom.HEX2ARGB((uint)iconData.intData) : orig(iconData);
+            On.CreatureSymbol.SpriteNameOfCreature += (orig, iconData) => iconData.critType == Register.BabyLizard ? "Kill_Standard_Lizard" : orig(iconData);
+            On.CreatureSymbol.SymbolDataFromCreature += (orig, creature) => creature.creatureTemplate.type == Register.BabyLizard ?
+            new IconSymbol.IconSymbolData(creature.creatureTemplate.type, AbstractPhysicalObject.AbstractObjectType.Creature, (int)(creature.state as BabyLizardState).hexColor) : orig(creature);
+            //Creature
+            On.AbstractCreature.ctor += AbstractCreature_ctor1;
+            On.SaveState.AbstractCreatureFromString += SaveState_AbstractCreatureFromString;
+            //Other
+            On.WorldLoader.CreatureTypeFromString += (orig, s) => s.ToLower() == "babylizard" ? Register.BabyLizard : orig(s);
+            On.CreatureTemplate.ctor_Type_CreatureTemplate_List1_List1_Relationship += CreatureTemplate_ctor_Type_CreatureTemplate_List1_List1_Relationship;
         }
 
-        private static IconSymbol.IconSymbolData CreatureSymbol_SymbolDataFromCreature(On.CreatureSymbol.orig_SymbolDataFromCreature orig, AbstractCreature creature)
+        private static AbstractCreature SaveState_AbstractCreatureFromString(On.SaveState.orig_AbstractCreatureFromString orig, World world, string creatureString, bool onlyInCurrentRegion, WorldCoordinate overrideCoord)
         {
-            if (creature.creatureTemplate.type == Register.BabyLizard)
-                return new IconSymbol.IconSymbolData(creature.creatureTemplate.type, AbstractPhysicalObject.AbstractObjectType.Creature, (int)(creature.state as BabyLizardState).hexColor);
-            else return orig(creature);
+            AbstractCreature creature = orig(world, creatureString, onlyInCurrentRegion, overrideCoord);
+            if (creature.state is BabyLizardState babyState)
+            {
+                if (babyState.age >= Options.lizGrowthTime.Value)
+                {
+                    creature.creatureTemplate = StaticWorld.GetCreatureTemplate(babyState.parent);
+                    creature.state = new LizardState(creature);
+                    if (creature.GetData() is FDataManager.LizardData data)
+                        data.playerIsParent = true;
+                }
+                else babyState.LimbFix();
+            }
+            return creature;
         }
 
-        private static string CreatureSymbol_SpriteNameOfCreature(On.CreatureSymbol.orig_SpriteNameOfCreature orig, IconSymbol.IconSymbolData iconData)
+        private static void AbstractCreature_ctor1(On.AbstractCreature.orig_ctor orig, AbstractCreature self, World world, CreatureTemplate creatureTemplate, Creature realizedCreature, WorldCoordinate pos, EntityID ID)
         {
-            if (iconData.critType == Register.BabyLizard)
-                return "Kill_Standard_Lizard";
-            return orig(iconData);
+            orig(self, world, creatureTemplate, realizedCreature, pos, ID);
+            if (creatureTemplate.type == Register.BabyLizard)
+                self.state = new BabyLizardState(self);
         }
 
-        private static Color CreatureSymbol_ColorOfCreature(On.CreatureSymbol.orig_ColorOfCreature orig, IconSymbol.IconSymbolData iconData)
+        private static void CreatureTemplate_ctor_Type_CreatureTemplate_List1_List1_Relationship(On.CreatureTemplate.orig_ctor_Type_CreatureTemplate_List1_List1_Relationship orig, CreatureTemplate self, CreatureTemplate.Type type, CreatureTemplate _, List<TileTypeResistance> _1, List<TileConnectionResistance> _2, CreatureTemplate.Relationship _3)
         {
-            if (iconData.critType == Register.BabyLizard)
-                return FCustom.HEX2ARGB((uint)iconData.intData);
-            return orig(iconData);
-        }
-
-        private static void CreatureTemplate_ctor_Type_CreatureTemplate_List1_List1_Relationship(On.CreatureTemplate.orig_ctor_Type_CreatureTemplate_List1_List1_Relationship orig, CreatureTemplate self, CreatureTemplate.Type type, CreatureTemplate ancestor, List<TileTypeResistance> tileResistances, List<TileConnectionResistance> connectionResistances, CreatureTemplate.Relationship defaultRelationship)
-        {
-            orig(self, type, ancestor, tileResistances, connectionResistances, defaultRelationship);
+            orig(self, type, _, _1, _2, _3);
             if (type == Register.BabyLizard)
                 self.name = "BabyLizard";
-        }
-
-        private static CreatureTemplate.Type WorldLoader_CreatureTypeFromString(On.WorldLoader.orig_CreatureTypeFromString orig, string s)
-        {
-            if (s.ToLower() == "babylizard")
-                return Register.BabyLizard;
-            return orig(s);
         }
 
         private static void StaticWorld_InitCustomTemplates(On.StaticWorld.orig_InitCustomTemplates orig)

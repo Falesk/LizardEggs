@@ -10,7 +10,7 @@ namespace LizardEggs
             if (world.game.session is StoryGameSession session)
                 birthday = session.saveState.cycleNumber;
             else birthday = 0;
-            parentType = FDataMananger.RandomLizard();
+            parentType = FDataManager.RandomLizard();
             color = (StaticWorld.GetCreatureTemplate(parentType).breedParameters as LizardBreedParams).standardColor;
             if (color == Color.black) color += 0.01f * Color.white;
             size = Random.Range(0.7f, 2f);

@@ -46,26 +46,26 @@ namespace LizardEggs
                 lastShaking = Random.Range(120 / (int)(3 * AbsStage), 400 / (int)(3 * AbsStage));
             }
 
-            if (room.abstractRoom.creatures.Any(abstr => abstr.ID == AbstractLizardEgg.parentID) && abstractPhysicalObject.world.regionState.saveState.cycleNumber - AbstractLizardEgg.birthday == 0)
-            {
-                lightIntensity += 0.025f;
-                if (lightIntensity > 1f)
-                    lightIntensity = -1;
-            }
-            else if (abstractPhysicalObject.world.regionState.saveState.cycleNumber - AbstractLizardEgg.birthday == Options.eggGrowthTime.Value - 1 && abstractPhysicalObject.world.regionState.saveState.cycleNumber - AbstractLizardEgg.birthday != 0)
-            {
-                lightIntensity += 0.01f;
-                if (lightIntensity > 1f)
-                    lightIntensity = -1;
-            }
-            else
-            {
+            //if (room.abstractRoom.creatures.Any(abstr => abstr.ID == AbstractLizardEgg.parentID) && abstractPhysicalObject.world.regionState.saveState.cycleNumber - AbstractLizardEgg.birthday == 0)
+            //{
+            //    lightIntensity += 0.025f;
+            //    if (lightIntensity > 1f)
+            //        lightIntensity = -1;
+            //}
+            //else if (abstractPhysicalObject.world.regionState.saveState.cycleNumber - AbstractLizardEgg.birthday == Options.eggGrowthTime.Value - 1 && abstractPhysicalObject.world.regionState.saveState.cycleNumber - AbstractLizardEgg.birthday != 0)
+            //{
+            //    lightIntensity += 0.01f;
+            //    if (lightIntensity > 1f)
+            //        lightIntensity = -1;
+            //}
+            //else
+            //{
                 if (Mathf.Abs(lightIntensity) < 0.01f)
                     lightIntensity = 0;
                 else if (lightIntensity > 0)
                     lightIntensity -= 0.025f;
                 else lightIntensity += 0.025f;
-            }
+            //}
 
             if (light != null)
             {
@@ -80,6 +80,12 @@ namespace LizardEggs
                 light = new LightSource(firstChunk.pos, false, Color.Lerp(AbstractLizardEgg.color, Color.white, 0.15f), this);
                 room.AddObject(light);
             }
+        }
+
+        public override void Destroy()
+        {
+            light?.Destroy();
+            base.Destroy();
         }
 
         public override void PlaceInRoom(Room placeRoom)
@@ -168,7 +174,7 @@ namespace LizardEggs
             {
                 EntityID entityID = room.world.game.GetNewID(abstractPhysicalObject.ID.spawner);
                 AbstractCreature abstrLiz = new AbstractCreature(room.world, StaticWorld.GetCreatureTemplate(Register.BabyLizard), null, abstractPhysicalObject.pos, entityID);
-                (abstrLiz.state as BabyLizardState).parent = StaticWorld.GetCreatureTemplate(FDataMananger.RandomLizard()).type;
+                (abstrLiz.state as BabyLizardState).parent = StaticWorld.GetCreatureTemplate(FDataManager.RandomLizard()).type;
                 (abstrLiz.state as BabyLizardState).LimbFix();
                 room.abstractRoom.AddEntity(abstrLiz);
                 abstrLiz.RealizeInRoom();
@@ -183,7 +189,15 @@ namespace LizardEggs
         public bool Edible => true;
         public bool AutomaticPickUp => true;
         public float Luminance => Mathf.Pow(Mathf.Sin(lightIntensity * Mathf.PI), 2);
-        public float AbsStage => Mathf.Clamp01((float)(abstractPhysicalObject.world.regionState.saveState.cycleNumber - AbstractLizardEgg.birthday) / Options.eggGrowthTime.Value);
+        public float AbsStage
+        {
+            get
+            {
+                if (abstractPhysicalObject.world.game.session is StoryGameSession session)
+                    return Mathf.Clamp01((float)(session.saveState.cycleNumber - AbstractLizardEgg.birthday) / Options.eggGrowthTime.Value);
+                else return 0;
+            }
+        }
         public Vector2 rotation;
         public Vector2 lastRotation;
         public float darkness;

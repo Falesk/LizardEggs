@@ -13,7 +13,7 @@ namespace LizardEggs
     {
         public const string ID = "falesk.lizardeggs";
         public const string Name = "Lizard Eggs";
-        public const string Version = "1.2.0.1";
+        public const string Version = "1.2.1";
         public bool eggInShelter;
         public static ManualLogSource logger;
 
@@ -29,7 +29,7 @@ namespace LizardEggs
                 On.World.ctor += (orig, self, game, region, name, singleRoomWorld) =>
                 {
                     orig(self, game, region, name, singleRoomWorld);
-                    FDataMananger.InitDens();
+                    FDataManager.InitDens();
                 };
                 On.Player.SleepUpdate += (orig, self) =>
                 {
@@ -57,11 +57,6 @@ namespace LizardEggs
             {
                 foreach (var crit in self.room.abstractRoom.creatures)
                 {
-                    //if (crit.creatureTemplate.type == Register.BabyLizard)
-                    //{
-                    //    var state = crit.state as BabyLizardState;
-                    //    Debug.Log($"BabyLizard - {crit.ID} - age: {state.age} - parent: {state.parent}");
-                    //}
                     if (crit.realizedCreature is Lizard liz)
                     {
                         Debug.Log(liz.AI.friendTracker.friend);
@@ -98,7 +93,6 @@ namespace LizardEggs
             catch (Exception e) { Logger.LogError(e); }
         }
 
-        //Main Hook - initialization
         private void RainWorld_OnModsInit(On.RainWorld.orig_OnModsInit orig, RainWorld self)
         {
             orig(self);

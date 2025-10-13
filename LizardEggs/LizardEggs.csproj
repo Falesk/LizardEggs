@@ -104,7 +104,7 @@
     <Compile Include="AbstractLizardEgg.cs" />
     <Compile Include="BabyLizardState.cs" />
     <Compile Include="FCustom.cs" />
-    <Compile Include="FDataMananger.cs" />
+    <Compile Include="FDataManager.cs" />
     <Compile Include="HooksBL.cs" />
     <Compile Include="HooksGeneral.cs" />
     <Compile Include="HooksLizard.cs" />

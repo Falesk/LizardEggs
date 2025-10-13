@@ -13,7 +13,7 @@ namespace LizardEggs
             den = _den;
             room = _room;
             pos = room.MiddleOfTile(room.LocalCoordinateOfNode(den.abstractNode).Tile);
-            lizard = FDataMananger.Dens[den].Item1?.realizedCreature as Lizard ?? new Lizard(FDataMananger.Dens[den].Item1, room.world);
+            lizard = FDataManager.Dens[den].Item1?.realizedCreature as Lizard ?? new Lizard(FDataManager.Dens[den].Item1, room.world);
             color = lizard.effectColor;
         }
 
