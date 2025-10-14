@@ -24,6 +24,16 @@ namespace LizardEggs
                 // Mod Init / Deinit
                 On.RainWorld.OnModsInit += RainWorld_OnModsInit;
                 On.RainWorld.OnModsDisabled += RainWorld_OnModsDisabled;
+                On.RainWorld.LoadModResources += delegate (On.RainWorld.orig_LoadModResources orig, RainWorld self)
+                {
+                    orig(self);
+                    Futile.atlasManager.LoadAtlas("assets/sprites");
+                };
+                On.RainWorld.UnloadResources += delegate (On.RainWorld.orig_UnloadResources orig, RainWorld self)
+                {
+                    orig(self);
+                    Futile.atlasManager.UnloadAtlas("assets/sprites");
+                };
                 // Other
                 IL.WinState.CycleCompleted += WinState_CycleCompleted;
                 On.World.ctor += (orig, self, game, region, name, singleRoomWorld) =>

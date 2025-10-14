@@ -21,6 +21,17 @@ namespace LizardEggs
             return new Color(r, g, b, a);
         }
 
+        /// <summary>
+        /// A method that returns a random deviation of the value of the function sin(x*pi)
+        /// </summary>
+        /// <param name="k">Value between 0 and 1</param>
+        /// <param name="d">Max deviation, between 0 and 1</param>
+        public static float RandomSinusoidDeviation(float k, float d)
+        {
+            float baseValue = Mathf.Sin(Mathf.Clamp01(k) * Mathf.PI);
+            return baseValue * Mathf.Lerp(1f - Mathf.Clamp01(d) / 2f, 1f + Mathf.Clamp01(d) / 2f, Random.value);
+        }
+
         public static int GetAbstractNode(WorldCoordinate wc, Room room)
         {
             for (int i = 0; i < room.abstractRoom.TotalNodes; i++)

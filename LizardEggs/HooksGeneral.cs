@@ -84,7 +84,7 @@ namespace LizardEggs
             if (FDataManager.Dens.TryGetValue(den, out var val) && val.Item2 > 0 && self.FreeHand() != -1 && ((self.input[0].pckp && Options.takeButton.Value == KeyCode.None) || Input.GetKey(Options.takeButton.Value)))
             {
                 Lizard liz = (val.Item1?.realizedCreature as Lizard) ?? new Lizard(val.Item1, self.room.world);
-                float size = Mathf.Sqrt(0.5f * liz.lizardParams.bodyMass);
+                float size = Mathf.Lerp(1, 10, Mathf.Lerp(0.8f, 1.2f, UnityEngine.Random.value) * Mathf.InverseLerp(0, 7, liz.lizardParams.bodyMass));
                 AbstractLizardEgg abstractEgg = new AbstractLizardEgg(
                     self.room.world,
                     self.room.GetWorldCoordinate(self.firstChunk.pos),

@@ -13,7 +13,7 @@ namespace LizardEggs
             parentType = FDataManager.RandomLizard();
             color = (StaticWorld.GetCreatureTemplate(parentType).breedParameters as LizardBreedParams).standardColor;
             if (color == Color.black) color += 0.01f * Color.white;
-            size = Random.Range(0.7f, 2f);
+            size = Random.Range(1f, 10f);
         }
         public AbstractLizardEgg(World world, WorldCoordinate pos, EntityID ID, EntityID parentID, float size, Color color, string parentType, int birthday) : base(world, Register.LizardEgg, null, pos, ID)
         {

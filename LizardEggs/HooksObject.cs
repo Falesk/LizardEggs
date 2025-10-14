@@ -89,9 +89,9 @@ namespace LizardEggs
         {
             if (obj is LizardEgg egg)
             {
-                if (egg.firstChunk.mass < 0.25f)
+                if (egg.firstChunk.mass < 0.075f)
                     return Player.ObjectGrabability.OneHand;
-                else if (egg.firstChunk.mass < 0.4f)
+                else if (egg.firstChunk.mass < 0.15f)
                     return Player.ObjectGrabability.BigOneHand;
                 return Player.ObjectGrabability.TwoHands;
             }
