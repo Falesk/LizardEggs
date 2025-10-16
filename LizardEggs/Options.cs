@@ -9,7 +9,7 @@ namespace LizardEggs
         public static Configurable<int> eggGrowthTime;
         public static Configurable<int> lizGrowthTime;
         public static Configurable<bool> trLizOpport;
-        public static Configurable<bool> youngLiz;
+        public static Configurable<bool> stillborn;
         public static Configurable<bool> tamedAggressiveness;
         public static Configurable<bool> edibleForPups;
         public static Configurable<float> baseChance;
@@ -33,7 +33,7 @@ namespace LizardEggs
             {
                 trLizOpport = config.Bind("trLizOpport", false, new ConfigurableInfo("If enabled, then with some chance a Train lizard can hatch from a Red lizard egg", tags: "Opportunity for a Train lizard to appear")),
                 tamedAggressiveness = config.Bind("tamedAggressiveness", false, new ConfigurableInfo("If enabled, tamed lizards will attack you if you steal their egg", tags: "Aggressiveness of the tamed")),
-                youngLiz = config.Bind("youngLiz", true, new ConfigurableInfo("If enabled, young lizards spawn from the egg, otherwise adults", tags: "Young lizards spawn")),
+                stillborn = config.Bind("stillborn", true, new ConfigurableInfo("If enabled, lizards won't be able to be born if the player is not around (in one region)", tags: "Possibility of stillbirth")),
                 edibleForPups = config.Bind("edibleForPups", true, new ConfigurableInfo("If enabled, slugpups can eat lizard eggs", tags: "Lizard eggs are edible for slugpups"))
             };
             floatConfig = new Configurable<float>[]

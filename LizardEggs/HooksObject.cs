@@ -1,4 +1,7 @@
-﻿using MoreSlugcats;
+﻿using Mono.Cecil.Cil;
+using MonoMod.Cil;
+using MoreSlugcats;
+using System;
 using UnityEngine;
 
 namespace LizardEggs
@@ -10,6 +13,7 @@ namespace LizardEggs
             //Main object
             On.AbstractPhysicalObject.Realize += AbstractPhysicalObject_Realize;
             On.Player.Grabability += Player_Grabability;
+            IL.Player.GrabUpdate += Player_GrabUpdate;
             On.SlugcatStats.NourishmentOfObjectEaten += SlugcatStats_NourishmentOfObjectEaten;
             On.PlayerSessionRecord.AddEat += PlayerSessionRecord_AddEat;
             //Slugpups
@@ -23,6 +27,36 @@ namespace LizardEggs
             On.ItemSymbol.ColorForItem += ItemSymbol_ColorForItem;
             On.ItemSymbol.SymbolDataFromItem += ItemSymbol_SymbolDataFromItem;
             On.ItemSymbol.SpriteNameForItem += (orig, itemType, intData) => itemType == Register.LizardEgg ? "HipsA" : orig(itemType, intData);
+        }
+
+        private static void Player_GrabUpdate(ILContext il)
+        {
+            try
+            {
+                ILCursor c = new ILCursor(il);
+                c.GotoNext(
+                    MoveType.After,
+                    x => x.MatchLdarg(0),
+                    x => x.MatchLdfld(typeof(Player).GetField(nameof(Player.eatCounter))),
+                    x => x.MatchLdcI4(out int _),
+                    x => x.MatchBle(out ILLabel _),
+                    x => x.MatchCallOrCallvirt(typeof(ModManager).GetMethod("get_DLCShared")),
+                    x => x.MatchBrfalse(out ILLabel _)
+                    );
+                c.MoveAfterLabels();
+                c.Emit(OpCodes.Ldarg_0);
+                c.Emit(OpCodes.Ldloc, 6);
+                c.EmitDelegate<Action<Player, int>>((player, num) =>
+                {
+                    if (player.FoodInStomach < player.MaxFoodInStomach && player.graphicsModule is PlayerGraphics graphics && num > -1 && player.grasps[num]?.grabbed is LizardEgg egg && (egg.AbstractLizardEgg.bites == 5 && !egg.Opened || egg.Rotten))
+                    {
+                        if (player.timeSinceSpawned % 3 == 1)
+                            player.eatCounter++;
+                        graphics.BiteStruggle(num);
+                    }
+                });
+            }
+            catch (Exception e) { Plugin.logger.LogError(e); }
         }
 
         private static IconSymbol.IconSymbolData? ItemSymbol_SymbolDataFromItem(On.ItemSymbol.orig_SymbolDataFromItem orig, AbstractPhysicalObject item)

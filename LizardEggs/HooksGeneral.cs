@@ -62,10 +62,12 @@ namespace LizardEggs
                 if (array[1] == Register.LizardEgg.value)
                 {
                     int birthday = int.Parse(array[6]);
-                    if (world.regionState.saveState.cycleNumber - birthday >= Options.eggGrowthTime.Value)
+                    int bites = int.Parse(array[8]);
+                    int openTime = int.Parse(array[9]);
+                    if (world.regionState.saveState.cycleNumber - birthday == Options.eggGrowthTime.Value && openTime == -1)
                         return SpawnLizard(world, array);
-                    return new AbstractLizardEgg(world, WorldCoordinate.FromString(array[2]), EntityID.FromString(array[0]), EntityID.FromString(array[5]), float.Parse(array[4]), FCustom.HEX2ARGB(uint.Parse(array[3])), array[7], birthday)
-                    { unrecognizedAttributes = SaveUtils.PopulateUnrecognizedStringAttrs(array, 8) };
+                    return new AbstractLizardEgg(world, WorldCoordinate.FromString(array[2]), EntityID.FromString(array[0]), EntityID.FromString(array[5]), float.Parse(array[4]), FCustom.HEX2ARGB(uint.Parse(array[3])), array[7], birthday, bites, openTime)
+                    { unrecognizedAttributes = SaveUtils.PopulateUnrecognizedStringAttrs(array, 10) };
                 }
             }
             catch { Plugin.logger.LogWarning($"Exception in SaveState.AbstractPhysicalObjectFromString"); }
@@ -85,12 +87,14 @@ namespace LizardEggs
             {
                 Lizard liz = (val.Item1?.realizedCreature as Lizard) ?? new Lizard(val.Item1, self.room.world);
                 float size = Mathf.Lerp(1, 10, Mathf.Lerp(0.8f, 1.2f, UnityEngine.Random.value) * Mathf.InverseLerp(0, 7, liz.lizardParams.bodyMass));
+                Color color = liz.effectColor + FCustom.RandomGray(0.15f);
+                color.a = 1f;
                 AbstractLizardEgg abstractEgg = new AbstractLizardEgg(
                     self.room.world,
                     self.room.GetWorldCoordinate(self.firstChunk.pos),
                     self.room.game.GetNewID(), liz.abstractCreature.ID,
                     size,
-                    liz.effectColor,
+                    FCustom.Clamp01Color(color),
                     liz.Template.name,
                     self.room.world.regionState.saveState.cycleNumber);
                 self.abstractCreature.Room.AddEntity(abstractEgg);

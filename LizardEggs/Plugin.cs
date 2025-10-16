@@ -3,7 +3,6 @@ using BepInEx.Logging;
 using Mono.Cecil.Cil;
 using MonoMod.Cil;
 using System;
-using UnityEngine;
 using System.Linq;
 
 namespace LizardEggs
@@ -13,7 +12,7 @@ namespace LizardEggs
     {
         public const string ID = "falesk.lizardeggs";
         public const string Name = "Lizard Eggs";
-        public const string Version = "1.2.1";
+        public const string Version = "1.3";
         public bool eggInShelter;
         public static ManualLogSource logger;
 
@@ -53,27 +52,8 @@ namespace LizardEggs
                     (data.itemType == Register.LizardEgg) ? Register.LizardEggUnlock : orig(data);
                 On.MultiplayerUnlocks.SymbolDataForSandboxUnlock += (orig, unlockID) =>
                 (unlockID == Register.LizardEggUnlock) ? new IconSymbol.IconSymbolData(CreatureTemplate.Type.StandardGroundCreature, Register.LizardEgg, 0) : orig(unlockID);
-
-                //debug
-                On.Player.ProcessDebugInputs += Player_ProcessDebugInputs;
             }
             catch (Exception e) { Logger.LogError(e); }
-        }
-
-        private void Player_ProcessDebugInputs(On.Player.orig_ProcessDebugInputs orig, Player self)
-        {
-            orig(self);
-            if (Input.GetKeyDown("="))
-            {
-                foreach (var crit in self.room.abstractRoom.creatures)
-                {
-                    if (crit.realizedCreature is Lizard liz)
-                    {
-                        Debug.Log(liz.AI.friendTracker.friend);
-                        Debug.Log(liz.abstractCreature.state.socialMemory.GetOrInitiateRelationship(self.abstractCreature.ID));
-                    }
-                }
-            }
         }
 
         //Mother Passage

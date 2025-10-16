@@ -32,6 +32,17 @@ namespace LizardEggs
             return baseValue * Mathf.Lerp(1f - Mathf.Clamp01(d) / 2f, 1f + Mathf.Clamp01(d) / 2f, Random.value);
         }
 
+        public static Color RandomGray(float d)
+        {
+            float rand = Mathf.Lerp(-0.5f * d, 0.5f * d, Random.value);
+            return new Color(rand, rand, rand);
+        }
+
+        public static Color Clamp01Color(Color color)
+        {
+            return new Color(Mathf.Clamp01(color.r), Mathf.Clamp01(color.g), Mathf.Clamp01(color.b), Mathf.Clamp01(color.a));
+        }
+
         public static int GetAbstractNode(WorldCoordinate wc, Room room)
         {
             for (int i = 0; i < room.abstractRoom.TotalNodes; i++)

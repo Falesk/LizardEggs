@@ -95,24 +95,17 @@ namespace LizardEggs
                 return;
             }
             orig(self, eu);
-            if ((self.State is BabyLizardState || (self.abstractCreature.GetData() is FDataManager.LizardData data && data.playerIsParent)) && self.grasps[0]?.grabbed is Creature crt)
+            if ((self.State is BabyLizardState || (self.abstractCreature.GetData() is FDataManager.LizardData data && data.playerIsParent)) && self.grasps[0]?.grabbed is Creature crt && !crt.State.alive && Random.value < 1 / 250f)
             {
-                if (crt.State.alive && Random.value < 1 / 200f)
-                    crt.Die();
-                else if (Random.value < 1 / 200f)
+                self.room.PlaySound(SoundID.Slugcat_Bite_Slime_Mold, self.firstChunk.pos, 2.5f, 0.5f);
+                for (int i = 0; i < 4 + Random.Range(0, 5); i++)
+                    self.room.AddObject(new WaterDrip(self.firstChunk.pos, new Vector2(Mathf.Lerp(-0.5f, 0.5f, Random.value), Mathf.Lerp(0f, 1f, Random.value)).normalized * Mathf.Lerp(3f, 10f, Random.value), false));
+                if (Random.value < 1 / 4f)
                 {
-                    for (int i = 0; i < crt.bodyChunks.Length; i++)
-                        crt.bodyChunks[i].rad /= 2;
-                    self.room.PlaySound(SoundID.Slugcat_Bite_Slime_Mold, self.firstChunk.pos, 2.5f, 0.5f);
+                    crt.Destroy();
+                    self.LoseAllGrasps();
                     for (int i = 0; i < 4 + Random.Range(0, 5); i++)
-                        self.room.AddObject(new WaterDrip(self.firstChunk.pos, -self.firstChunk.vel * Random.value * 0.5f + Custom.DegToVec(360f * Random.value) * self.firstChunk.vel.magnitude * Random.value * 0.5f, false));
-                    if (Random.value < 1 / 3f)
-                    {
-                        crt.Destroy();
-                        self.LoseAllGrasps();
-                        for (int i = 0; i < 4 + Random.Range(0, 5); i++)
-                            self.room.AddObject(new WaterDrip(self.firstChunk.pos, -self.firstChunk.vel * Random.value * 0.5f + Custom.DegToVec(360f * Random.value) * self.firstChunk.vel.magnitude * Random.value * 0.5f, false));
-                    }
+                        self.room.AddObject(new WaterDrip(self.firstChunk.pos, new Vector2(Mathf.Lerp(-0.5f, 0.5f, Random.value), Mathf.Lerp(0f, 1f, Random.value)).normalized * Mathf.Lerp(4f, 21f, Random.value), false));
                 }
             }
         }
