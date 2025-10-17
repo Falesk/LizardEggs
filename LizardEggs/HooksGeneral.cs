@@ -64,13 +64,14 @@ namespace LizardEggs
                     int birthday = int.Parse(array[6]);
                     int bites = int.Parse(array[8]);
                     int openTime = int.Parse(array[9]);
-                    if (world.regionState.saveState.cycleNumber - birthday == Options.eggGrowthTime.Value && openTime == -1)
+                    int stage = world.regionState.saveState.cycleNumber - birthday;
+                    if ((stage == Options.eggGrowthTime.Value || (stage > Options.eggGrowthTime.Value && !Options.stillborn.Value)) && openTime == -1)
                         return SpawnLizard(world, array);
                     return new AbstractLizardEgg(world, WorldCoordinate.FromString(array[2]), EntityID.FromString(array[0]), EntityID.FromString(array[5]), float.Parse(array[4]), FCustom.HEX2ARGB(uint.Parse(array[3])), array[7], birthday, bites, openTime)
                     { unrecognizedAttributes = SaveUtils.PopulateUnrecognizedStringAttrs(array, 10) };
                 }
             }
-            catch { Plugin.logger.LogWarning($"Exception in SaveState.AbstractPhysicalObjectFromString"); }
+            catch { Plugin.logger.LogWarning($"Exception in SaveState.AbstractPhysicalObjectFromString - LizardEgg didn't load from string"); }
             return orig(world, objString);
         }
 
@@ -121,9 +122,10 @@ namespace LizardEggs
             UnityEngine.Random.state = rstate;
 
             AbstractCreature abstr = new AbstractCreature(world, StaticWorld.GetCreatureTemplate(Register.BabyLizard), null, pos, lizID);
-            (abstr.state as BabyLizardState).parent = StaticWorld.GetCreatureTemplate(parentType).type;
-            (abstr.state as BabyLizardState).hexColor = uint.Parse(array[3]);
-            (abstr.state as BabyLizardState).LimbFix();
+            BabyLizardState bState = abstr.state as BabyLizardState;
+            bState.parent = StaticWorld.GetCreatureTemplate(parentType).type;
+            bState.hexColor = uint.Parse(array[3]);
+            bState.LimbFix();
             return abstr;
         }
     }

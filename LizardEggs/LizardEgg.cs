@@ -10,6 +10,7 @@ namespace LizardEggs
         public Vector2[] frontCrack, backCrack;
         public float darkness, lastDarkness, lightIntensity = 0f;
         public int lastShaking = 200;
+        public bool justOpened;
         public LightSource light;
         public Color yolkColor;
 
@@ -17,7 +18,7 @@ namespace LizardEggs
 
         public LizardEgg(AbstractPhysicalObject abstr) : base(abstr)
         {
-            float rad = Mathf.Lerp(0.65f, 1.2f, Mathf.InverseLerp(1, 10, AbstractLizardEgg.size)) + 0.5f * AbsStage;
+            float rad = Mathf.Lerp(0.65f, 1.1f, Mathf.InverseLerp(1, 10, AbstractLizardEgg.size)) + 0.5f * AbsStage;
             float mass = 2f * Mathf.Lerp(0.01f, 0.1f, Mathf.InverseLerp(1, 10, AbstractLizardEgg.size)) * Mathf.Pow(rad, 2);
             bodyChunks = new BodyChunk[]
             { new BodyChunk(this, 0, Vector2.zero, (Opened ? 3.5f : 10f) * rad, (Opened ? 0.5f : 1f) * mass) };
@@ -77,7 +78,7 @@ namespace LizardEggs
                 firstChunk.vel.x *= 0.85f;
             }
 
-            if (!Opened)
+            if (!Opened && !Rotten)
             {
                 Shaking();
                 LightIntensityChange();
@@ -152,7 +153,7 @@ namespace LizardEggs
             sLeaser.sprites = new FSprite[]
             {
                 TriangleMesh.MakeLongMesh(backCrack.Length - 1, false, true),
-                new FSprite("BodyA") { isVisible = false },
+                new FSprite("BodyA") { isVisible = Opened },
                 TriangleMesh.MakeLongMesh(frontCrack.Length - 1, false, true),
                 new FSprite($"LizardEggA{(Opened ? 1 : 0)}"),
                 new FSprite($"LizardEggB{(Opened ? 1 : 0)}"),
@@ -180,12 +181,8 @@ namespace LizardEggs
 
             if (Opened)
             {
-                sLeaser.sprites[3].element = Futile.atlasManager.GetElementWithName("LizardEggA1");
-                sLeaser.sprites[4].element = Futile.atlasManager.GetElementWithName("LizardEggB1");
-
                 TriangleMesh backCr = sLeaser.sprites[0] as TriangleMesh;
                 backCr.SetPosition(pos - camPos);
-                //float sizeFac = firstChunk.rad / 3.5f;
                 Vector2 spriteSize = new Vector2(20f, 12f) * sizeFac;
                 Vector2 root = Vector2.down * spriteSize.y * 0.5f;
 
@@ -209,7 +206,6 @@ namespace LizardEggs
                 backCr.rotation = Custom.VecToDeg(rt);
 
                 FSprite yolk = sLeaser.sprites[1];
-                yolk.isVisible = true;
                 yolk.SetPosition(pos - camPos);
                 yolk.rotation = Custom.VecToDeg(rt);
                 yolk.scaleX = Mathf.Lerp(0f, 1f, Mathf.InverseLerp(0, 4, AbstractLizardEgg.bites)) * sizeFacMain * 1.1f;
@@ -237,12 +233,17 @@ namespace LizardEggs
                 }
                 frontCr.rotation = Custom.VecToDeg(rt);
 
-                ColorizeMesh(sLeaser);
+                if (justOpened)
+                {
+                    sLeaser.sprites[3].element = Futile.atlasManager.GetElementWithName("LizardEggA1");
+                    sLeaser.sprites[4].element = Futile.atlasManager.GetElementWithName("LizardEggB1");
+                    yolk.isVisible = true;
+                    ColorizeMesh(sLeaser);
+                    justOpened = false;
+                }
             }
 
-            if (blink > 0 && Random.value < 0.5f)
-                sLeaser.sprites[4].color = blinkColor;
-            else sLeaser.sprites[4].color = Color.Lerp(color, rCam.currentPalette.blackColor, 0.2f * (1f - Luminance));
+            BlinkColor(sLeaser, rCam);
             if (slatedForDeletetion || room != rCam.room)
                 sLeaser.CleanSpritesAndRemove();
         }
@@ -253,24 +254,42 @@ namespace LizardEggs
             if (rCam.room.PlayersInRoom?.Count > 0)
                 color = Color.Lerp(AbstractLizardEgg.color, Color.white, 0.3f * AbsStage);
             color = Color.Lerp(color, palette.blackColor, darkness);
+            ColorizeMesh(sLeaser);
         }
 
         public void ColorizeMesh(RoomCamera.SpriteLeaser sLeaser)
         {
-            bool isBlink = blink > 0 && Random.value < 0.5f;
-
             TriangleMesh backCr = sLeaser.sprites[0] as TriangleMesh;
             Vector3 hslColor = Custom.RGB2HSL(color);
-            Color inner = isBlink ? blinkColor : Color.Lerp(Custom.HSL2RGB(hslColor.x, 1f - hslColor.y, 1f - hslColor.z), color, 0.4f);
+            Color inner = Color.Lerp(Custom.HSL2RGB(hslColor.x, 1f - hslColor.y, 1f - hslColor.z), color, 0.4f);
             for (int i = 0; i < backCr.verticeColors.Length; i++)
                 backCr.verticeColors[i] = inner;
 
             sLeaser.sprites[1].color = Color.Lerp(yolkColor, sLeaser.sprites[3].color, Mathf.Pow(darkness, 2));
 
             TriangleMesh frontCr = sLeaser.sprites[2] as TriangleMesh;
-            Color outer = isBlink ? blinkColor : Color.Lerp(sLeaser.sprites[3].color, color, 0.3f);
+            Color outer = Color.Lerp(sLeaser.sprites[3].color, color, 0.3f);
             for (int i = 0; i < frontCr.verticeColors.Length; i++)
                 frontCr.verticeColors[i] = outer;
+        }
+
+        public void BlinkColor(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam)
+        {
+            if (blink > 0 && Random.value < 0.5f)
+            {
+                sLeaser.sprites[4].color = blinkColor;
+                TriangleMesh backCr = sLeaser.sprites[0] as TriangleMesh;
+                for (int i = 0; i < backCr.verticeColors.Length; i++)
+                    backCr.verticeColors[i] = blinkColor;
+                TriangleMesh frontCr = sLeaser.sprites[2] as TriangleMesh;
+                for (int i = 0; i < frontCr.verticeColors.Length; i++)
+                    frontCr.verticeColors[i] = blinkColor;
+            }
+            else
+            {
+                sLeaser.sprites[4].color = Color.Lerp(color, rCam.currentPalette.blackColor, 0.2f * (1f - Luminance));
+                ColorizeMesh(sLeaser);
+            }
         }
 
         public void AddToContainer(RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, FContainer newContatiner)
@@ -290,7 +309,8 @@ namespace LizardEggs
             if (abstractPhysicalObject.world.game.session is StoryGameSession session)
                 AbstractLizardEgg.openTime = session.saveState.cycleNumber;
             else AbstractLizardEgg.openTime = 0;
-                firstChunk.rad *= 0.35f;
+            justOpened = true;
+            firstChunk.rad *= 0.35f;
             firstChunk.mass *= 0.5f;
             room.PlaySound(DLCSharedEnums.SharedSoundID.Duck_Pop, firstChunk, false, 1f, 0.5f + Random.value * 0.5f);
             for (int i = 0; i < 5; i++)
@@ -324,11 +344,28 @@ namespace LizardEggs
                 abstrLiz.RealizeInRoom();
                 Destroy();
             }
-            else if (weapon is Rock)
+            else if (weapon is Rock || weapon is Spear)
             {
                 firstChunk.vel = new Vector2(Mathf.Lerp(-0.5f, 0.5f, Random.value), Mathf.Lerp(0f, 1f, Random.value)).normalized * Mathf.Lerp(5, 8, Random.value);
                 if (AbstractLizardEgg.bites == 5) AbstractLizardEgg.bites--;
                 Open();
+            }
+            else if (weapon is ScavengerBomb)
+            {
+                for (int i = 0; i < 5; i++)
+                    room.AddObject(new WaterDrip(firstChunk.pos, Custom.DegToVec(Random.value * 360f) * Mathf.Lerp(4f, 21f, Random.value), false));
+                Destroy();
+            }
+        }
+
+        public override void HitByExplosion(float hitFac, Explosion explosion, int hitChunk)
+        {
+            base.HitByExplosion(hitFac, explosion, hitChunk);
+            if (Random.value < hitFac)
+            {
+                for (int i = 0; i < 5; i++)
+                    room.AddObject(new WaterDrip(firstChunk.pos, Custom.DegToVec(Random.value * 360f) * Mathf.Lerp(4f, 21f, Random.value), false));
+                Destroy();
             }
         }
 
