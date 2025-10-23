@@ -12,7 +12,7 @@ namespace LizardEggs
     {
         public const string ID = "falesk.lizardeggs";
         public const string Name = "Lizard Eggs";
-        public const string Version = "1.3";
+        public const string Version = "1.3.0.1";
         public bool eggInShelter;
         public static ManualLogSource logger;
 
@@ -26,12 +26,12 @@ namespace LizardEggs
                 On.RainWorld.LoadModResources += delegate (On.RainWorld.orig_LoadModResources orig, RainWorld self)
                 {
                     orig(self);
-                    Futile.atlasManager.LoadAtlas("assets/sprites");
+                    Futile.atlasManager.LoadAtlas("assets/lizeggs_sprites");
                 };
                 On.RainWorld.UnloadResources += delegate (On.RainWorld.orig_UnloadResources orig, RainWorld self)
                 {
                     orig(self);
-                    Futile.atlasManager.UnloadAtlas("assets/sprites");
+                    Futile.atlasManager.UnloadAtlas("assets/lizeggs_sprites");
                 };
                 // Other
                 IL.WinState.CycleCompleted += WinState_CycleCompleted;

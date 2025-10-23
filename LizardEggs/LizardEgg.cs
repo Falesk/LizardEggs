@@ -208,9 +208,10 @@ namespace LizardEggs
                 FSprite yolk = sLeaser.sprites[1];
                 yolk.SetPosition(pos - camPos);
                 yolk.rotation = Custom.VecToDeg(rt);
-                yolk.scaleX = Mathf.Lerp(0f, 1f, Mathf.InverseLerp(0, 4, AbstractLizardEgg.bites)) * sizeFacMain * 1.1f;
-                yolk.scaleY = -0.5f * sizeFac;
-                yolk.anchorY = Mathf.Lerp(1.1f, 1.3f, Mathf.InverseLerp(0, 4, AbstractLizardEgg.bites));
+                float scale = Mathf.InverseLerp(0, 4, AbstractLizardEgg.bites);
+                yolk.scaleX = Mathf.Lerp(0f, 1f, scale) * sizeFacMain * 1.1f;
+                yolk.scaleY = -0.5f * sizeFac * Mathf.Lerp(0.5f, 1f, scale);
+                yolk.anchorY = Mathf.Lerp(1.1f, 1.3f, scale);
 
                 TriangleMesh frontCr = sLeaser.sprites[2] as TriangleMesh;
                 frontCr.SetPosition(pos - camPos);
