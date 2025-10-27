@@ -53,8 +53,6 @@ namespace LizardEggs
                 creature.creatureTemplate.type = Register.BabyLizard;
             }
             else orig(self, creature, world);
-            if ((creature.state is BabyLizardState || (self.lizard?.abstractCreature.GetData() is FDataManager.LizardData data && data.playerIsParent)) && self.denFinder.denPosition == null && creature.Room.shelter)
-                self.denFinder.denPosition = new WorldCoordinate(creature.Room.index, -1, -1, -1);
         }
 
         private static YellowAI.YellowPack YellowAI_Pack(On.YellowAI.orig_Pack orig, YellowAI self, Creature liz)
@@ -95,7 +93,7 @@ namespace LizardEggs
                 return;
             }
             orig(self, eu);
-            if ((self.State is BabyLizardState || (self.abstractCreature.GetData() is FDataManager.LizardData data && data.playerIsParent)) && self.grasps[0]?.grabbed is Creature crt && !crt.State.alive && Random.value < 1 / 250f)
+            if ((self.State is BabyLizardState || (self.abstractCreature.GetData() is FDataManager.LizardData data && data.playerIsParent)) && self.grasps[0].grabbed is Creature crt && !crt.State.alive && Random.value < 1 / 250f)
             {
                 self.room.PlaySound(SoundID.Slugcat_Bite_Slime_Mold, self.firstChunk.pos, 2.5f, 0.5f);
                 for (int i = 0; i < 4 + Random.Range(0, 5); i++)
@@ -142,8 +140,10 @@ namespace LizardEggs
 
         private static void Lizard_Update_Relationships(Lizard self)
         {
+            if (self.AI.friendTracker == null)
+                return;
             bool friendFlag = self.State is BabyLizardState || (self.abstractCreature.GetData() is FDataManager.LizardData lisData && lisData.playerIsParent);
-            if (friendFlag && self.AI.friendTracker.friend == null && self.room.PlayersInRoom.Count > 0 && self.room.game.FirstAlivePlayer.realizedCreature is Player player && player != null && self.Consious)
+            if (friendFlag && self.AI.friendTracker.friend == null && self.room.PlayersInRoom?.Count > 0 && self.room.game.FirstAlivePlayer.realizedCreature is Player player && player != null && self.Consious)
             {
                 SocialMemory.Relationship relationship = self.abstractCreature.state.socialMemory.GetOrInitiateRelationship(player.abstractCreature.ID);
                 relationship.InfluenceKnow(Mathf.Abs(0.85f) * 0.25f);

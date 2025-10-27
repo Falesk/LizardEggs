@@ -117,4 +117,10 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+    <Target Name="CopyToMultipleFolders" AfterTargets="Build">
+    <Copy SourceFiles="$(TargetPath)" 
+          DestinationFolder="E:\SteamLibrary\steamapps\common\Rain World\RainWorld_Data\StreamingAssets\mods\Lizard Eggs\plugins" />
+	    <Copy SourceFiles="$(TargetDir)$(TargetName).pdb" 
+          DestinationFolder="E:\SteamLibrary\steamapps\common\Rain World\RainWorld_Data\StreamingAssets\mods\Lizard Eggs\plugins" />
+</Target>
 </Project>

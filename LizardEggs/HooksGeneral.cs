@@ -23,7 +23,7 @@ namespace LizardEggs
             {
                 ILCursor c = new ILCursor(il);
                 c.GotoNext(
-                    MoveType.Before,
+                    MoveType.After,
                     x => x.MatchLdfld(typeof(World.CreatureSpawner).GetField(nameof(World.CreatureSpawner.nightCreature))),
                     x => x.MatchStfld(typeof(AbstractCreature).GetField(nameof(AbstractCreature.nightCreature))),
                     x => x.MatchLdloc(11),
@@ -38,6 +38,27 @@ namespace LizardEggs
                 c.EmitDelegate<Action<WorldLoader, AbstractCreature>>((self, abstr) =>
                 {
                     if (ModManager.MSC && self.game.rainWorld.safariMode)
+                        return;
+                    if (abstr.creatureTemplate.IsLizard && !abstr.preCycle)
+                        FDataManager.AddToDens(abstr, self.playerCharacter);
+                });
+
+                c.GotoNext(
+                    MoveType.After,
+                    x => x.MatchLdfld(typeof(World.CreatureSpawner).GetField(nameof(World.CreatureSpawner.nightCreature))),
+                    x => x.MatchStfld(typeof(AbstractCreature).GetField(nameof(AbstractCreature.nightCreature))),
+                    x => x.MatchLdloc(15),
+                    x => x.MatchCallOrCallvirt(typeof(AbstractCreature).GetMethod(nameof(AbstractCreature.setCustomFlags))),
+                    x => x.MatchLdloc(13),
+                    x => x.MatchLdloc(15),
+                    x => x.MatchCallOrCallvirt(typeof(AbstractRoom).GetMethod(nameof(AbstractRoom.MoveEntityToDen)))
+                    );
+                c.MoveAfterLabels();
+                c.Emit(OpCodes.Ldarg_0);
+                c.Emit(OpCodes.Ldloc, 15);
+                c.EmitDelegate<Action<WorldLoader, AbstractCreature>>((self, abstr) =>
+                {
+                    if ((ModManager.MSC && self.game.rainWorld.safariMode) || abstr == null || abstr.creatureTemplate == null)
                         return;
                     if (abstr.creatureTemplate.IsLizard && !abstr.preCycle)
                         FDataManager.AddToDens(abstr, self.playerCharacter);

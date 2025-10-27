@@ -29,7 +29,7 @@ namespace LizardEggs
         private static AbstractCreature SaveState_AbstractCreatureFromString(On.SaveState.orig_AbstractCreatureFromString orig, World world, string creatureString, bool onlyInCurrentRegion, WorldCoordinate overrideCoord)
         {
             AbstractCreature creature = orig(world, creatureString, onlyInCurrentRegion, overrideCoord);
-            if (creature.state is BabyLizardState babyState)
+            if (creature != null && creature.state is BabyLizardState babyState)
             {
                 if (babyState.age >= Options.lizGrowthTime.Value)
                 {

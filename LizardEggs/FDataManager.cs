@@ -46,17 +46,17 @@ namespace LizardEggs
 
         public static void AddToDens(AbstractCreature abstr, SlugcatStats.Name name)
         {
-            if (Dens.ContainsKey(abstr.spawnDen) || !abstr.spawnDen.NodeDefined || abstr.creatureTemplate.name == "YoungLizard" || abstr.creatureTemplate.name == "BabyLizard")
+            if (Dens.ContainsKey(abstr.spawnDen) || !LizardCanHaveAnEgg(abstr))
                 return;
             Dens.Add(abstr.spawnDen, (abstr, 0));
-            int amount = (abstr.world.GetSpawner(abstr.ID) as World.SimpleSpawner).amount;
             float chance = FCustom.EggSpawnChance(name);
             if (Options.occurrenceFrequency.Value > 1f)
                 chance += (1f - chance) * (1f - 1f / Options.occurrenceFrequency.Value);
             else chance *= Options.occurrenceFrequency.Value;
-            for (int i = 0; i < amount; i++)
-                if (UnityEngine.Random.value < chance)
-                    ChangeDensValue(abstr.spawnDen, 1);
+            if (UnityEngine.Random.value < chance)
+                ChangeDensValue(abstr.spawnDen, 1);
         }
+
+        private static bool LizardCanHaveAnEgg(AbstractCreature abstr) => abstr.spawnDen.NodeDefined && abstr.creatureTemplate.name != "YoungLizard" && abstr.creatureTemplate.name != "BabyLizard";
     }
 }
