@@ -11,7 +11,6 @@
             parent = StaticWorld.GetCreatureTemplate(FDataManager.RandomLizard()).type;
             age = 0;
             hexColor = 0;
-            LimbFix();
         }
 
         public void LimbFix()

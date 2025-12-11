@@ -14,54 +14,28 @@ namespace LizardEggs
             On.RoomCamera.ChangeRoom += RoomCamera_ChangeRoom;
             On.SaveState.AbstractPhysicalObjectFromString += SaveState_AbstractPhysicalObjectFromString;
             On.Player.DirectIntoHoles += Player_DirectIntoHoles;
-            IL.WorldLoader.GeneratePopulation += WorldLoader_GeneratePopulation;
+            IL.WorldLoader.NextActivity += WorldLoader_NextActivity;
         }
 
-        private static void WorldLoader_GeneratePopulation(ILContext il)
+        private static void WorldLoader_NextActivity(ILContext il)
         {
             try
             {
                 ILCursor c = new ILCursor(il);
                 c.GotoNext(
                     MoveType.After,
-                    x => x.MatchLdfld(typeof(World.CreatureSpawner).GetField(nameof(World.CreatureSpawner.nightCreature))),
-                    x => x.MatchStfld(typeof(AbstractCreature).GetField(nameof(AbstractCreature.nightCreature))),
-                    x => x.MatchLdloc(11),
-                    x => x.MatchCallOrCallvirt(typeof(AbstractCreature).GetMethod(nameof(AbstractCreature.setCustomFlags))),
-                    x => x.MatchLdloc(9),
-                    x => x.MatchLdloc(11),
-                    x => x.MatchCallOrCallvirt(typeof(AbstractRoom).GetMethod(nameof(AbstractRoom.MoveEntityToDen)))
+                    x => x.MatchLdsfld(typeof(WorldLoader.Activity).GetField(nameof(WorldLoader.Activity.Finished))),
+                    x => x.MatchCallOrCallvirt(typeof(ExtEnum<WorldLoader.Activity>).GetMethod("op_Equality")),
+                    x => x.MatchBrfalse(out _)
                     );
                 c.MoveAfterLabels();
                 c.Emit(OpCodes.Ldarg_0);
-                c.Emit(OpCodes.Ldloc, 11);
-                c.EmitDelegate<Action<WorldLoader, AbstractCreature>>((self, abstr) =>
+                c.EmitDelegate<Action<WorldLoader>>(self =>
                 {
-                    if (ModManager.MSC && self.game.rainWorld.safariMode)
-                        return;
-                    if (abstr.creatureTemplate.IsLizard && !abstr.preCycle)
-                        FDataManager.AddToDens(abstr, self.playerCharacter);
-                });
-
-                c.GotoNext(
-                    MoveType.After,
-                    x => x.MatchLdfld(typeof(World.CreatureSpawner).GetField(nameof(World.CreatureSpawner.nightCreature))),
-                    x => x.MatchStfld(typeof(AbstractCreature).GetField(nameof(AbstractCreature.nightCreature))),
-                    x => x.MatchLdloc(15),
-                    x => x.MatchCallOrCallvirt(typeof(AbstractCreature).GetMethod(nameof(AbstractCreature.setCustomFlags))),
-                    x => x.MatchLdloc(13),
-                    x => x.MatchLdloc(15),
-                    x => x.MatchCallOrCallvirt(typeof(AbstractRoom).GetMethod(nameof(AbstractRoom.MoveEntityToDen)))
-                    );
-                c.MoveAfterLabels();
-                c.Emit(OpCodes.Ldarg_0);
-                c.Emit(OpCodes.Ldloc, 15);
-                c.EmitDelegate<Action<WorldLoader, AbstractCreature>>((self, abstr) =>
-                {
-                    if ((ModManager.MSC && self.game.rainWorld.safariMode) || abstr == null || abstr.creatureTemplate == null)
-                        return;
-                    if (abstr.creatureTemplate.IsLizard && !abstr.preCycle)
-                        FDataManager.AddToDens(abstr, self.playerCharacter);
+                    for (int i = 0; i < self.abstractRooms.Count; i++)
+                        for (int j = 0; j < self.abstractRooms[i].entitiesInDens.Count; j++)
+                            if (self.abstractRooms[i].entitiesInDens[j] is AbstractCreature abstr && abstr.creatureTemplate.IsLizard && !abstr.preCycle)
+                                FDataManager.AddToDens(abstr, self.playerCharacter);
                 });
             }
             catch (Exception e) { Plugin.logger.LogError(e); }
