@@ -140,7 +140,7 @@ namespace LizardEggs
 
         private static void Lizard_Update_Relationships(Lizard self)
         {
-            if (self.AI.friendTracker == null)
+            if (self.AI?.friendTracker == null)
                 return;
             bool friendFlag = self.State is BabyLizardState || (self.abstractCreature.GetData() is FDataManager.LizardData lisData && lisData.playerIsParent);
             if (friendFlag && self.AI.friendTracker.friend == null && self.room.PlayersInRoom?.Count > 0 && self.room.game.FirstAlivePlayer.realizedCreature is Player player && player != null && self.Consious)

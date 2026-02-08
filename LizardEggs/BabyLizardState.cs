@@ -8,9 +8,10 @@
 
         public BabyLizardState(AbstractCreature creature) : base(creature)
         {
-            parent = StaticWorld.GetCreatureTemplate(FDataManager.RandomLizard()).type;
+            parent = DLCSharedEnums.CreatureTemplateType.SpitLizard;
             age = 0;
             hexColor = 0;
+            limbHealth = new float[6] { 1f, 1f, 1f, 1f, 1f, 1f };
         }
 
         public void LimbFix()

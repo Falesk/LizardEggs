@@ -391,7 +391,7 @@ namespace LizardEggs
             get
             {
                 if (Opened && abstractPhysicalObject.world.game.session is StoryGameSession session)
-                    return Mathf.Abs(session.saveState.cycleNumber - AbstractLizardEgg.openTime) > 0;
+                    return Mathf.Abs(session.saveState.cycleNumber - AbstractLizardEgg.openTime) > 0 || Stage > Options.eggGrowthTime.Value;
                 return Stillborn;
             }
         }

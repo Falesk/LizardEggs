@@ -12,7 +12,7 @@ namespace LizardEggs
     {
         public const string ID = "falesk.lizardeggs";
         public const string Name = "Lizard Eggs";
-        public const string Version = "1.3.0.3";
+        public const string Version = "1.3.0.5";
         public bool eggInShelter;
         private static bool loaded = false;
         public static ManualLogSource logger;
