@@ -12,53 +12,78 @@ namespace LizardEggs
     {
         public const string ID = "falesk.lizardeggs";
         public const string Name = "Lizard Eggs";
-        public const string Version = "1.3.0.5";
+        public const string Version = "1.3.0.6";
         public bool eggInShelter;
         private static bool loaded = false;
         public static ManualLogSource logger;
 
-        public void Awake()
+        public void OnEnable()
         {
+            logger = Logger;
+            On.RainWorld.OnModsInit += RainWorld_OnModsInit;
+            On.RainWorld.OnModsDisabled += RainWorld_OnModsDisabled;
+            On.RainWorld.LoadModResources += delegate (On.RainWorld.orig_LoadModResources orig, RainWorld self)
+            {
+                orig(self);
+                if (!Futile.atlasManager.DoesContainAtlas("lizeggs_sprites"))
+                    Futile.atlasManager.LoadAtlas("assets/lizeggs_sprites");
+            };
+            On.RainWorld.UnloadResources += delegate (On.RainWorld.orig_UnloadResources orig, RainWorld self)
+            {
+                orig(self);
+                if (Futile.atlasManager.DoesContainAtlas("lizeggs_sprites"))
+                    Futile.atlasManager.UnloadAtlas("lizeggs_sprites");
+            };
+            IL.WinState.CycleCompleted += WinState_CycleCompleted;
+            On.World.ctor += (orig, self, game, region, name, singleRoomWorld) =>
+            {
+                orig(self, game, region, name, singleRoomWorld);
+                FDataManager.InitDens();
+            };
+            On.Player.SleepUpdate += (orig, self) =>
+            {
+                orig(self);
+                if (self.sleepCounter < 0)
+                    eggInShelter = self.room.abstractRoom.shelter && self.room.physicalObjects[1].Exists(obj => obj is LizardEgg);
+            };
+            On.MultiplayerUnlocks.SandboxItemUnlocked += (orig, self, unlockID) =>
+                unlockID == Register.LizardEggUnlock || orig(self, unlockID);
+            On.MultiplayerUnlocks.SandboxUnlockForSymbolData += (orig, data) =>
+                (data.itemType == Register.LizardEgg) ? Register.LizardEggUnlock : orig(data);
+            On.MultiplayerUnlocks.SymbolDataForSandboxUnlock += (orig, unlockID) =>
+            (unlockID == Register.LizardEggUnlock) ? new IconSymbol.IconSymbolData(CreatureTemplate.Type.StandardGroundCreature, Register.LizardEgg, 0) : orig(unlockID);
+        }
+
+        private void RainWorld_OnModsInit(On.RainWorld.orig_OnModsInit orig, RainWorld self)
+        {
+            orig(self);
             try
             {
                 if (!loaded)
                 {
-                    // Mod Init / Deinit
-                    On.RainWorld.OnModsInit += RainWorld_OnModsInit;
-                    On.RainWorld.OnModsDisabled += RainWorld_OnModsDisabled;
-                    On.RainWorld.LoadModResources += delegate (On.RainWorld.orig_LoadModResources orig, RainWorld self)
-                    {
-                        orig(self);
-                        Futile.atlasManager.LoadAtlas("assets/lizeggs_sprites");
-                    };
-                    On.RainWorld.UnloadResources += delegate (On.RainWorld.orig_UnloadResources orig, RainWorld self)
-                    {
-                        orig(self);
-                        Futile.atlasManager.UnloadAtlas("assets/lizeggs_sprites");
-                    };
-                    // Other
-                    IL.WinState.CycleCompleted += WinState_CycleCompleted;
-                    On.World.ctor += (orig, self, game, region, name, singleRoomWorld) =>
-                    {
-                        orig(self, game, region, name, singleRoomWorld);
-                        FDataManager.InitDens();
-                    };
-                    On.Player.SleepUpdate += (orig, self) =>
-                    {
-                        orig(self);
-                        if (self.sleepCounter < 0)
-                            eggInShelter = self.room.abstractRoom.shelter && self.room.physicalObjects[1].Exists(obj => obj is LizardEgg);
-                    };
-                    On.MultiplayerUnlocks.SandboxItemUnlocked += (orig, self, unlockID) =>
-                        unlockID == Register.LizardEggUnlock || orig(self, unlockID);
-                    On.MultiplayerUnlocks.SandboxUnlockForSymbolData += (orig, data) =>
-                        (data.itemType == Register.LizardEgg) ? Register.LizardEggUnlock : orig(data);
-                    On.MultiplayerUnlocks.SymbolDataForSandboxUnlock += (orig, unlockID) =>
-                    (unlockID == Register.LizardEggUnlock) ? new IconSymbol.IconSymbolData(CreatureTemplate.Type.StandardGroundCreature, Register.LizardEgg, 0) : orig(unlockID);
+                    Register.RegisterValues();
+                    MachineConnector.SetRegisteredOI(ID, new Options());
+                    if (!MultiplayerUnlocks.ItemUnlockList.Contains(Register.LizardEggUnlock))
+                        MultiplayerUnlocks.ItemUnlockList.Add(Register.LizardEggUnlock);
+                    HooksGeneral.Init();
+                    HooksObject.Init();
+                    HooksLizard.Init();
+                    HooksBL.Init();
                     loaded = true;
                 }
             }
             catch (Exception e) { Logger.LogError(e); }
+        }
+
+        private void RainWorld_OnModsDisabled(On.RainWorld.orig_OnModsDisabled orig, RainWorld self, ModManager.Mod[] newlyDisabledMods)
+        {
+            orig(self, newlyDisabledMods);
+            if (newlyDisabledMods.Any(mod => mod.id == ID))
+            {
+                if (MultiplayerUnlocks.ItemUnlockList.Contains(Register.LizardEggUnlock))
+                    MultiplayerUnlocks.ItemUnlockList.Remove(Register.LizardEggUnlock);
+                Register.UnregisterValues();
+            }
         }
 
         //Mother Passage
@@ -86,27 +111,6 @@ namespace LizardEggs
                 c.Emit(OpCodes.Stloc_0);
             }
             catch (Exception e) { Logger.LogError(e); }
-        }
-
-        private void RainWorld_OnModsInit(On.RainWorld.orig_OnModsInit orig, RainWorld self)
-        {
-            orig(self);
-            logger = Logger;
-            Register.UnregisterValues();
-            Register.RegisterValues();
-            MachineConnector.SetRegisteredOI(ID, new Options());
-            MultiplayerUnlocks.ItemUnlockList.Add(Register.LizardEggUnlock);
-            HooksGeneral.Init();
-            HooksObject.Init();
-            HooksLizard.Init();
-            HooksBL.Init();
-        }
-
-        private void RainWorld_OnModsDisabled(On.RainWorld.orig_OnModsDisabled orig, RainWorld self, ModManager.Mod[] newlyDisabledMods)
-        {
-            orig(self, newlyDisabledMods);
-            if (newlyDisabledMods.Any(mod => mod.id == ID))
-                Register.UnregisterValues();
         }
     }
 }

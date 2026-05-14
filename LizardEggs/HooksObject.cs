@@ -139,7 +139,13 @@ namespace LizardEggs
             {
                 if (self is AbstractLizardEgg)
                     self.realizedObject = new LizardEgg(self);
-                else self.realizedObject = new LizardEgg(new AbstractLizardEgg(self));
+                else
+                {
+                    self.type = null;
+                    AbstractLizardEgg abstr = new AbstractLizardEgg(self);
+                    self.Room.AddEntity(abstr);
+                    abstr.RealizeInRoom();
+                }
             }
         }
     }

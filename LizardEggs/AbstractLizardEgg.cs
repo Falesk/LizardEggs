@@ -33,7 +33,7 @@ namespace LizardEggs
 
         public override string ToString()
         {
-            if (bites == 0) return "";
+            if (bites == 0) return string.Empty;
             string text = $"{ID}<oA>{type}<oA>{pos.SaveToString()}<oA>{FCustom.ARGB2HEX(color)}<oA>{size}<oA>{parentID}<oA>{birthday}<oA>{parentType}<oA>{bites}<oA>{openTime}";
             text = SaveState.SetCustomData(this, text);
             return SaveUtils.AppendUnrecognizedStringAttrs(text, "<oA>", unrecognizedAttributes);

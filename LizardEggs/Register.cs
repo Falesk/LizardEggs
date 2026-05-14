@@ -21,24 +21,19 @@ namespace LizardEggs
 
         public static void UnregisterValues()
         {
-            AbstractPhysicalObject.AbstractObjectType lizardEgg = LizardEgg;
-            lizardEgg?.Unregister();
+            LizardEgg?.Unregister();
             LizardEgg = null;
 
-            SlugNPCAI.Food lizardEggFood = LizardEggNPCFood;
-            lizardEggFood?.Unregister();
+            LizardEggNPCFood?.Unregister();
             LizardEggNPCFood = null;
 
-            SLOracleBehaviorHasMark.MiscItemType eggConv = EggConv;
-            eggConv?.Unregister();
+            EggConv?.Unregister();
             EggConv = null;
 
-            MultiplayerUnlocks.SandboxUnlockID lizardEggUnlock = LizardEggUnlock;
-            lizardEggUnlock?.Unregister();
+            LizardEggUnlock?.Unregister();
             LizardEggUnlock = null;
 
-            CreatureTemplate.Type babyLizard = BabyLizard;
-            babyLizard?.Unregister();
+            BabyLizard?.Unregister();
             BabyLizard = null;
         }
     }

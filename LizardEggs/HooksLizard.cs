@@ -21,6 +21,7 @@ namespace LizardEggs
             On.LizardGraphics.HeadColor += LizardGraphics_HeadColor;
             On.LizardGraphics.ctor += LizardGraphics_ctor;
             On.LizardCosmetics.SpineSpikes.ctor += SpineSpikes_ctor;
+            On.Watcher.LizardBlizzardModule.IsForbiddenToPull += (orig, self, uad) => uad is Indicator || orig(self, uad);
         }
 
         private static void SpineSpikes_ctor(On.LizardCosmetics.SpineSpikes.orig_ctor orig, LizardCosmetics.SpineSpikes self, LizardGraphics lGraphics, int startSprite)
@@ -64,7 +65,7 @@ namespace LizardEggs
 
         private static LizardAI.Behavior LizardAI_DetermineBehavior(On.LizardAI.orig_DetermineBehavior orig, LizardAI self)
         {
-            if (self.lizard.grasps[0]?.grabbed.abstractPhysicalObject is AbstractLizardEgg egg && egg.parentID == self.creature.ID)
+            if (self.lizard.grasps[0]?.grabbed.abstractPhysicalObject is AbstractLizardEgg egg && egg.parentID == self.creature.ID && egg.openTime == -1)
             {
                 self.currentUtility = 1f;
                 return LizardAI.Behavior.ReturnPrey;
@@ -75,7 +76,7 @@ namespace LizardEggs
         private static void LizardAI_Update(On.LizardAI.orig_Update orig, LizardAI self)
         {
             orig(self);
-            if (self.creature.GetData() is FDataManager.LizardData data && data.egg != null && self.behavior != LizardAI.Behavior.ReturnPrey && self.pathFinder.CoordinateReachableAndGetbackable(data.egg.pos))
+            if (self.creature.GetData() is FDataManager.LizardData data && data.egg != null && data.egg.openTime == -1 && self.behavior != LizardAI.Behavior.ReturnPrey && self.pathFinder.CoordinateReachableAndGetbackable(data.egg.pos))
             {
                 self.creature.abstractAI.SetDestination(data.egg.pos);
                 self.runSpeed = Mathf.Lerp(self.runSpeed, 1.2f, 0.75f);
@@ -93,7 +94,7 @@ namespace LizardEggs
                 return;
             }
             orig(self, eu);
-            if ((self.State is BabyLizardState || (self.abstractCreature.GetData() is FDataManager.LizardData data && data.playerIsParent)) && self.grasps[0].grabbed is Creature crt && !crt.State.alive && Random.value < 1 / 250f)
+            if ((self.State is BabyLizardState || (self.abstractCreature.GetData() is FDataManager.LizardData data && data.playerIsParent)) && self.grasps[0]?.grabbed is Creature crt && !crt.State.alive && Random.value < 1 / 250f)
             {
                 self.room.PlaySound(SoundID.Slugcat_Bite_Slime_Mold, self.firstChunk.pos, 2.5f, 0.5f);
                 for (int i = 0; i < 4 + Random.Range(0, 5); i++)
@@ -176,6 +177,8 @@ namespace LizardEggs
                     }
                     else if (obj is LizardEgg eggg && eggg.AbstractLizardEgg.parentID == self.abstractCreature.ID)
                     {
+                        if (eggg.Opened)
+                            break;
                         if (data.egg == null)
                             data.egg = eggg.abstractPhysicalObject as AbstractLizardEgg;
                         if ((self.graphicsModule as LizardGraphics)?.lightSource != null)
