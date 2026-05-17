@@ -157,7 +157,9 @@ namespace LizardEggs
 
         private static void Lizard_Update_EggDefence(Lizard self, bool eu)
         {
-            if ((Options.tamedAggressiveness.Value || !(self.AI.friendTracker?.friend is Player)) && self.abstractCreature.GetData() is FDataManager.LizardData data)
+            if (self.AI?.friendTracker == null)
+                return;
+            if ((Options.tamedAggressiveness.Value || !(self.AI.friendTracker.friend is Player)) && self.abstractCreature.GetData() is FDataManager.LizardData data)
             {
                 foreach (PhysicalObject obj in self.room.physicalObjects[1])
                 {
